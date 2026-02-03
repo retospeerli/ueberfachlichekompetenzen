@@ -6,8 +6,9 @@
   <title>Überfachliche Kompetenzen</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- html2pdf bundle bringt html2canvas + jsPDF mit -->
-  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.3/dist/html2pdf.bundle.min.js"></script>
+  <!-- LOKAL statt CDN -->
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
 </head>
 
 <body>
@@ -19,8 +20,8 @@
       </div>
 
       <div class="actions">
-        <button id="btnReset" class="btn btn--ghost" type="button" title="Raster auf Standard setzen">Standard</button>
-        <button id="btnRegen" class="btn" type="button" title="Text neu aus Raster erzeugen (überschreibt Editor)">Text neu erzeugen</button>
+        <button id="btnReset" class="btn btn--ghost" type="button">Standard</button>
+        <button id="btnRegen" class="btn" type="button">Text neu erzeugen</button>
         <button id="btnPdf" class="btn btn--primary" type="button">PDF erstellen</button>
       </div>
     </div>
@@ -65,19 +66,12 @@
         </label>
       </div>
 
-      <p class="hint">
-        Tipp: Im Text sind „Feinjustier-Wörter“ farbig markiert (z. B. <em>meist</em>, <em>manchmal</em>).
-        In der PDF ist alles schwarz.
-      </p>
+      <p class="hint">Farbig markierte Wörter im Text sind „Feinjustier-Wörter“. In der PDF ist alles schwarz.</p>
     </section>
 
     <section class="card">
       <h2>Beurteilungsraster (detailliert)</h2>
-      <p class="muted">
-        Kreuze die passenden Beobachtungen an. Die App berechnet daraus eine Gesamtstufe pro Kriterium (Auto),
-        die du bei Bedarf manuell überschreiben kannst.
-      </p>
-
+      <p class="muted">Kreuze Beobachtungen an. Die App berechnet daraus eine Gesamtstufe pro Kriterium (Auto), die du bei Bedarf manuell überschreiben kannst.</p>
       <div id="rasterRoot" class="raster"></div>
     </section>
 
@@ -86,14 +80,11 @@
         <h2>Auswertungstext</h2>
         <div class="row row--gap">
           <button id="btnDictateText" class="btn btn--ghost" type="button">🎤 Diktat</button>
-          <button id="btnCopy" class="btn btn--ghost" type="button" title="Text kopieren (ohne Farben)">Kopieren</button>
+          <button id="btnCopy" class="btn btn--ghost" type="button">Kopieren</button>
         </div>
       </div>
 
-      <div class="muted small">
-        Du kannst den Text direkt bearbeiten. Wenn du den Text manuell änderst, wird er nicht mehr automatisch überschrieben.
-      </div>
-
+      <div class="muted small">Der Text ist direkt editierbar (mit Rechtschreibprüfung des Browsers).</div>
       <div id="reportEditor" class="editor" contenteditable="true" spellcheck="true"></div>
 
       <div class="row row--between row--center mt">
@@ -105,7 +96,7 @@
         placeholder="Bemerkungen der Lehrperson (optional)."></textarea>
     </section>
 
-    <!-- PRINT/PDF (nicht sichtbar, wird für Export geklont) -->
+    <!-- PRINT/PDF -->
     <section id="printArea" class="printArea printArea--offscreen" aria-hidden="true">
       <div class="printPage">
         <div class="printHeader">
