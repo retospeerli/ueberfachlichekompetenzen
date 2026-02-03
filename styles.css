@@ -4,12 +4,9 @@
   --ink:#eaf0ff;
   --muted:#b7c3e6;
   --line:rgba(255,255,255,.12);
-  --accent:#4ea3ff;
   --accent2:#7dd3fc;
-
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
-
 *{ box-sizing:border-box; }
 body{
   margin:0;
@@ -32,8 +29,8 @@ body{
   justify-content:space-between;
   gap:12px;
 }
-.brand__title{ font-weight:900; letter-spacing:.2px; }
-.brand__subtitle{ color:var(--muted); font-size:.9rem; margin-top:2px; }
+.brand__title{ font-weight:900; }
+.brand__subtitle{ color:var(--muted); font-size:.9rem; }
 
 .container{
   max-width:1100px;
@@ -43,7 +40,6 @@ body{
   flex-direction:column;
   gap:16px;
 }
-
 .card{
   background: rgba(15,26,51,.85);
   border:1px solid var(--line);
@@ -63,24 +59,19 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 @media (max-width: 900px){ .grid--4{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px){ .grid--4{ grid-template-columns: 1fr; } }
 
-.field span{
-  display:block;
-  color:var(--muted);
-  font-size:.92rem;
-  margin:0 0 6px 0;
-}
+.field span{ display:block; color:var(--muted); font-size:.92rem; margin:0 0 6px 0; }
 .field input, .field select{
   width:100%;
   background: rgba(255,255,255,.06);
   border:1px solid var(--line);
   color:var(--ink);
-  padding:10px 10px;
+  padding:10px;
   border-radius:10px;
   outline:none;
 }
 .field input:focus, .field select:focus{
-  border-color: rgba(78,163,255,.8);
-  box-shadow: 0 0 0 3px rgba(78,163,255,.18);
+  border-color: rgba(125,211,252,.7);
+  box-shadow: 0 0 0 3px rgba(125,211,252,.18);
 }
 
 .actions{ display:flex; gap:10px; flex-wrap:wrap; }
@@ -93,72 +84,12 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   cursor:pointer;
   font-weight:800;
 }
-.btn:hover{ border-color: rgba(78,163,255,.6); }
 .btn--primary{
-  background: linear-gradient(135deg, rgba(78,163,255,.95), rgba(125,211,252,.75));
-  border-color: rgba(78,163,255,.65);
+  background: linear-gradient(135deg, rgba(125,211,252,.85), rgba(255,255,255,.18));
+  border-color: rgba(125,211,252,.55);
   color:#061025;
 }
 .btn--ghost{ background: transparent; }
-
-.raster{ display:flex; flex-direction:column; gap:14px; }
-
-.group{
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:12px;
-  background: rgba(255,255,255,.04);
-}
-.group__title{
-  font-weight:900;
-  margin:0 0 10px 0;
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
-.badge{
-  font-size:.82rem;
-  padding:4px 8px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  color:var(--muted);
-}
-
-.item{
-  border-top:1px dashed rgba(255,255,255,.12);
-  padding-top:10px;
-  margin-top:10px;
-}
-.item:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
-
-.item__head{
-  display:flex;
-  gap:10px;
-  align-items:flex-start;
-  justify-content:space-between;
-}
-.item__name{ font-weight:800; line-height:1.2; }
-.item__opts{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap:8px;
-  width: min(720px, 100%);
-}
-@media (max-width: 900px){ .item__opts{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-.opt{
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:8px 10px;
-  background: rgba(255,255,255,.04);
-  cursor:pointer;
-  display:flex;
-  gap:8px;
-  align-items:flex-start;
-}
-.opt input{ margin-top:3px; }
-.opt__t{ font-weight:900; font-size:.92rem; }
-.opt__d{ color:var(--muted); font-size:.86rem; margin-top:2px; line-height:1.25; }
 
 .row{ display:flex; }
 .row--between{ justify-content:space-between; }
@@ -166,7 +97,6 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 .row--gap{ gap:10px; }
 .mt{ margin-top:10px; }
 
-/* Editor (statt textarea, damit markierte Wörter möglich sind) */
 .editor{
   width:100%;
   min-height: 240px;
@@ -179,16 +109,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   white-space: pre-wrap;
   line-height: 1.38;
 }
-.editor:focus{
-  border-color: rgba(78,163,255,.8);
-  box-shadow: 0 0 0 3px rgba(78,163,255,.18);
-}
-
-/* Markierte Feinjustier-Wörter */
-.mod{
-  color: var(--accent2);
-  font-weight: 900;
-}
+.mod{ color: var(--accent2); font-weight: 900; }
 
 .textarea{
   width:100%;
@@ -200,39 +121,167 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   outline:none;
   resize:vertical;
 }
-.textarea:focus{
-  border-color: rgba(78,163,255,.8);
-  box-shadow: 0 0 0 3px rgba(78,163,255,.18);
+
+/* ===== Raster: detaillierte Optionen ===== */
+.raster{ display:flex; flex-direction:column; gap:14px; }
+.group{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  background: rgba(255,255,255,.04);
+}
+.group__title{
+  font-weight:900;
+  margin:0 0 10px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
 }
 
-/* ======= PRINT / PDF ======= */
-.printArea{
-  width: 210mm;
+.detailItem{
+  border-top:1px dashed rgba(255,255,255,.12);
+  padding-top:12px;
+  margin-top:12px;
 }
-.printArea--offscreen{
-  position: fixed;
-  left: -99999px;
-  top: 0;
+.detailItem:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
+
+.detailTop{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
 }
+.detailTitle{ font-weight:900; max-width: 58ch; line-height:1.2; }
+
+.overall{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.overall__label{ color: var(--muted); font-size:.92rem; }
+.overall__select{
+  background: rgba(255,255,255,.06);
+  border:1px solid var(--line);
+  color: var(--ink);
+  padding:8px 10px;
+  border-radius:10px;
+  outline:none;
+}
+
+.levelGrid{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:10px;
+}
+@media (max-width: 900px){
+  .levelGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.levelCol{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px;
+  background: rgba(255,255,255,.04);
+}
+.levelCap{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+.levelCap__short{ font-weight:900; }
+.levelCap__long{ color:var(--muted); font-size:.88rem; }
+
+.pointList{ display:flex; flex-direction:column; gap:8px; }
+.point{ display:flex; gap:8px; align-items:flex-start; cursor:pointer; }
+.point input{ margin-top:3px; }
+.point span{ font-size:.92rem; line-height:1.2; }
+
+/* Farbrahmen (UI) */
+.levelCol--blue   { outline: 2px solid rgba(125,211,252,.30); }
+.levelCol--green  { outline: 2px solid rgba(68,209,157,.28); }
+.levelCol--orange { outline: 2px solid rgba(255,179,71,.28); }
+.levelCol--red    { outline: 2px solid rgba(255,107,107,.28); }
+
+/* ===== PRINT/PDF ===== */
+.printArea{ width:210mm; }
+.printArea--offscreen{ position:fixed; left:-99999px; top:0; }
+
 .printPage{
   width:210mm;
   min-height:297mm;
   background:#fff;
   color:#111;
-  padding:16mm 16mm 14mm 16mm;
+  padding:14mm 14mm 12mm 14mm;
   font-family: Arial, Helvetica, sans-serif;
   position: relative;
 }
 .printHeader{
   border-bottom:1px solid #ddd;
-  padding-bottom:8mm;
-  margin-bottom:8mm;
+  padding-bottom:6mm;
+  margin-bottom:6mm;
 }
 .printTitle{ font-size:18pt; font-weight:900; }
-.printMeta{ margin-top:3mm; font-size:10.5pt; color:#333; }
+.printMeta{ margin-top:2.5mm; font-size:10.5pt; color:#333; }
+
+.zeugnisTitle{
+  font-size:11pt;
+  font-weight:700;
+  margin:2mm 0 4mm 0;
+  border-bottom:1px solid #bbb;
+  padding-bottom:2mm;
+}
+.zeugnisSection{ margin-top:4mm; }
+.zeugnisSectionHead{
+  font-weight:800;
+  margin:0 0 1.5mm 0;
+  border-bottom:1px solid #bbb;
+  padding-bottom:1mm;
+}
+.zeugnisTable{
+  width:100%;
+  display:grid;
+  grid-template-columns: 1fr 84mm; /* Text links, 4 Spalten rechts */
+  column-gap: 6mm;
+  row-gap: 1.3mm;
+  font-size:10.2pt;
+}
+.zRowLeft{ padding-right:2mm; }
+.zRowRight{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4mm;
+  align-items:center;
+  justify-items:center;
+}
+.zHeaderRight{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4mm;
+  justify-items:center;
+  align-items:end;
+  font-size:8.5pt;
+  color:#333;
+  transform: translateY(-1mm);
+}
+.zHeaderRight .rot{
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  line-height: 1;
+}
+.mark{
+  width:5.2mm;
+  height:5.2mm;
+  border:1px solid #444;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:9pt;
+  font-weight:800;
+}
+.mark--on::after{ content:"X"; }
 
 .printBlock{ margin-top:6mm; }
-.printLabel{ font-weight:900; margin-bottom:2.5mm; }
+.printLabel{ font-weight:900; margin-bottom:2mm; }
 .printLabelBox{
   font-weight:900;
   background:#eee;
@@ -241,47 +290,29 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   display:inline-block;
   min-width: 55mm;
 }
+.printText{ font-size:11pt; line-height:1.35; white-space:pre-wrap; }
 
-.printText{
-  font-size:11pt;
-  line-height:1.35;
-  white-space:pre-wrap;
-}
-
-/* Linienfelder */
-.printLines .line{
-  height:8mm;
-  border-bottom:1px solid #444;
-  margin-bottom:3mm;
-}
+.printLines .line{ height:8mm; border-bottom:1px solid #444; margin-bottom:3mm; }
 
 /* Unterschriften */
 .sigBox{ margin-top:3mm; border:1px solid #444; }
 .sigRow{ display:grid; }
-.sigRow--top{
-  grid-template-columns: 2fr 1fr;
-  border-bottom:1px solid #444;
-}
+.sigRow--top{ grid-template-columns: 2fr 1fr; border-bottom:1px solid #444; }
 .sigRow--top > div{ padding:3mm 4mm; font-size:10.5pt; }
 .sigRow--grid{ grid-template-columns: 1fr 1fr 1fr; }
-.sigCell{
-  border-right:1px solid #444;
-  padding:3mm 4mm 7mm 4mm;
-  min-height:28mm;
-}
+.sigCell{ border-right:1px solid #444; padding:3mm 4mm 7mm 4mm; min-height:28mm; }
 .sigCell:last-child{ border-right:none; }
 .sigCap{ font-size:10.5pt; margin-bottom:4mm; font-weight:700; }
 .sigLine{ height:0; border-bottom:1px solid #111; margin-top:16mm; }
 
 .printFooter{
   position:absolute;
-  left:16mm; right:16mm; bottom:10mm;
+  left:14mm; right:14mm; bottom:8mm;
   font-size:9.5pt;
   color:#555;
   display:flex;
   justify-content:space-between;
 }
 
-/* In PDF: Marker wirken nicht (wir exportieren ohnehin Plaintext),
-   aber falls HTML doch drin wäre: erzwinge schwarz */
+/* PDF: Marker immer schwarz */
 #printArea .mod{ color:#111 !important; font-weight:400 !important; }
