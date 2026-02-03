@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Überfachliche Kompetenzen</title>
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- PDF Export (Client-side) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.3/dist/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__title">Überfachliche Kompetenzen</div>
+        <div class="brand__subtitle">Beurteilungsraster → Text → PDF</div>
+      </div>
+
+      <div class="actions">
+        <button id="btnFillStandard" class="btn btn--ghost" type="button" title="Alles auf Gut (Standard) setzen">
+          Standard setzen
+        </button>
+        <button id="btnGenerate" class="btn" type="button">
+          Text aktualisieren
+        </button>
+        <button id="btnPdf" class="btn btn--primary" type="button">
+          PDF erstellen
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Angaben</h2>
+
+      <div class="grid grid--4">
+        <label class="field">
+          <span>Name Kind</span>
+          <input id="studentName" type="text" autocomplete="off" placeholder="Vorname Nachname" />
+        </label>
+
+        <label class="field">
+          <span>Klasse</span>
+          <input id="className" type="text" autocomplete="off" placeholder="z. B. 3a" />
+        </label>
+
+        <label class="field">
+          <span>Geschlecht</span>
+          <select id="gender">
+            <option value="m">m</option>
+            <option value="w">w</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Name Lehrperson</span>
+          <input id="teacherName" type="text" autocomplete="off" placeholder="z. B. R. Speerli" />
+        </label>
+
+        <label class="field">
+          <span>Ort</span>
+          <input id="place" type="text" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span>Datum</span>
+          <input id="date" type="date" />
+        </label>
+      </div>
+
+      <p class="hint">
+        Tipp: Rechtschreibprüfung ist aktiv (Browserfunktion). In vielen Browsern kannst du im Textfeld rechtsklicken → „Rechtschreibung“.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Raster</h2>
+      <p class="muted">
+        Auswahl pro Kriterium: <strong>sehr gut ++</strong>, <strong>Gut + (Standard)</strong>, <strong>Genügend -</strong>, <strong>Ungenügend --</strong>.
+        (Wortlaut gemäss Vorlage.) :contentReference[oaicite:1]{index=1}
+      </p>
+
+      <div id="rasterRoot" class="raster"></div>
+    </section>
+
+    <section class="card">
+      <div class="row row--between row--center">
+        <h2>Auswertungstext (editierbar)</h2>
+        <div class="row row--gap">
+          <button id="btnDictateText" class="btn btn--ghost" type="button" title="Diktat starten/stoppen (Browser)">
+            🎤 Diktat: Text
+          </button>
+          <button id="btnCopy" class="btn btn--ghost" type="button" title="Text kopieren">
+            Kopieren
+          </button>
+        </div>
+      </div>
+
+      <textarea
+        id="reportText"
+        class="textarea"
+        rows="10"
+        spellcheck="true"
+        placeholder="Hier erscheint der automatisch erzeugte Text. Du kannst ihn direkt anpassen."
+      ></textarea>
+
+      <div class="row row--between row--center mt">
+        <h3 class="h3">Bemerkungen Lehrperson (optional)</h3>
+        <button id="btnDictateRemarks" class="btn btn--ghost" type="button" title="Diktat starten/stoppen (Browser)">
+          🎤 Diktat: Bemerkungen
+        </button>
+      </div>
+
+      <textarea
+        id="teacherRemarks"
+        class="textarea"
+        rows="4"
+        spellcheck="true"
+        placeholder="Bemerkungen der Lehrperson (werden in der PDF übernommen)."
+      ></textarea>
+    </section>
+
+    <!-- PRINT / PDF TEMPLATE (hidden on screen) -->
+    <section id="printArea" class="print print--hidden" aria-hidden="true">
+      <div class="print__page">
+        <div class="print__header">
+          <div>
+            <div class="print__title">Überfachliche Kompetenzen</div>
+            <div class="print__meta" id="printMeta"></div>
+          </div>
+        </div>
+
+        <div class="print__block">
+          <div class="print__label">Auswertung</div>
+          <div id="printText" class="print__text"></div>
+        </div>
+
+        <div class="print__block">
+          <div class="print__label">Bemerkungen Lehrperson</div>
+          <div id="printTeacherRemarks" class="print__lines"></div>
+        </div>
+
+        <div class="print__block">
+          <div class="print__label">Bemerkungen Eltern</div>
+          <div class="print__lines">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+          </div>
+        </div>
+
+        <div class="print__block">
+          <div class="print__label print__label--box">Unterschriften</div>
+
+          <div class="sig">
+            <div class="sig__row sig__row--dates">
+              <div><strong>Datum:</strong></div>
+              <div><strong>Datum:</strong></div>
+            </div>
+
+            <div class="sig__row sig__row--grid">
+              <div class="sig__cell">
+                <div class="sig__cap">Kind</div>
+                <div class="sig__box"></div>
+              </div>
+              <div class="sig__cell">
+                <div class="sig__cap">Lehrperson</div>
+                <div class="sig__box"></div>
+              </div>
+              <div class="sig__cell">
+                <div class="sig__cap">Eltern</div>
+                <div class="sig__box"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="print__footer">
+          <div>PS Wädenswil, Schule Untermosen, 2.–4. Klasse</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
