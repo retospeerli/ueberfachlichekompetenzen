@@ -1,34 +1,215 @@
-/* Überfachliche Kompetenzen – komplett neu, ohne Datenspeicherung */
+/* Überfachliche Kompetenzen – detailliertes Raster mit farbigen Punkten
+   Quelle der Punkte: Vorlage (2-4KLA_1.PDF) :contentReference[oaicite:1]{index=1}
+   - Pro Kriterium: 4 Spalten (vv/g/ge/u) mit Checkbox-Punkten
+   - Gesamtstufe: Auto (aus Checkboxen) oder manuell überschreiben
+   - PDF: Kopf → Zeugnis-Übersicht (Kreuzchen) → Text → Bemerkungen
+   - PDF robust: html2canvas → jsPDF, Klon im DOM
+*/
 
 const DEFAULT_PLACE = "Wädenswil";
 
-const LEVELS = [
-  { key: "vv", label: "sehr gut ++" },
-  { key: "g",  label: "Gut + (Standard)" },
-  { key: "ge", label: "Genügend -" },
-  { key: "u",  label: "Ungenügend --" }
-];
+// Reihenfolge entspricht dem Zeugnis: --, -, +, ++ (rechtsbündig in 4 Spalten)
+const LEVEL_ORDER_PDF = ["u","ge","g","vv"];
+const LEVEL_ORDER_UI  = ["vv","g","ge","u"]; // für farbliche Interpretation + UI-Logik
+const LEVEL_LABEL = { vv:"++", g:"+", ge:"-", u:"--" };
+const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" };
 
-// Struktur wie Raster: 6 + 2 Kriterien
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
-    badge: "6 Kriterien",
     items: [
-      { id: "puenktlich", title: "Erscheint pünktlich und ordnungsgemäss zum Unterricht" },
-      { id: "aktiv", title: "Beteiligt sich aktiv am Unterricht" },
-      { id: "konzentriert", title: "Arbeitet konzentriert und ausdauernd" },
-      { id: "sorgfalt", title: "Gestaltet Arbeiten sorgfältig und zuverlässig" },
-      { id: "zusammenarbeit", title: "Kann mit anderen zusammenarbeiten" },
-      { id: "selbsteinschaetzung", title: "Schätzt die eigene Leistungsfähigkeit realistisch ein" }
+      {
+        id: "puenktlich",
+        title: "Erscheint pünktlich und ordnungsgemäss zum Unterricht",
+        levels: {
+          vv: { color: "blue",  points: [
+            "Sitzt bei Beginn der Stunde am Platz",
+            "Ist ruhig bei Beginn der Stunde",
+            "Bringt Material und HA immer vollständig"
+          ]},
+          g:  { color: "green", points: [
+            "Sitzt bei Beginn der Stunde am Platz",
+            "Bringt Material und HA vollständig"
+          ]},
+          ge: { color: "orange",points: [
+            "Ist bei Beginn der Stunde im Zimmer, aber noch nicht am Platz",
+            "Bringt Material und HA teilweise vollständig"
+          ]},
+          u:  { color: "red",   points: [
+            "Kommt nach dem Läuten ins Zimmer",
+            "Bringt Material und HA regelmässig unvollständig"
+          ]}
+        }
+      },
+      {
+        id: "aktiv",
+        title: "Beteiligt sich aktiv am Unterricht",
+        levels: {
+          vv: { color: "blue", points: [
+            "Stellt Fragen",
+            "Sucht Lösungen",
+            "Sucht Wege",
+            "Zeigt grosse Eigeninitiative"
+          ]},
+          g:  { color: "green",points: [
+            "Stellt Fragen",
+            "Zeigt Eigeninitiative"
+          ]},
+          ge: { color: "orange",points: [
+            "Stellt selten Fragen",
+            "Zeigt wenig Eigeninitiative"
+          ]},
+          u:  { color: "red", points: [
+            "Stellt keine Fragen",
+            "Zeigt keine Eigeninitiative"
+          ]}
+        }
+      },
+      {
+        id: "konzentriert",
+        title: "Arbeitet konzentriert und ausdauernd",
+        levels: {
+          vv: { color: "blue", points: [
+            "Arbeitet konzentriert",
+            "Arbeitet ausdauernd",
+            "Beendet eigenständig die Arbeit"
+          ]},
+          g:  { color: "green",points: [
+            "Arbeitet meistens konzentriert",
+            "Arbeitet meistens ausdauernd",
+            "Beendet die Arbeit"
+          ]},
+          ge: { color: "orange",points: [
+            "Arbeitet teilweise konzentriert",
+            "Lässt sich ablenken",
+            "Beendet die Arbeit teilweise"
+          ]},
+          u:  { color: "red", points: [
+            "Lässt sich bei der Arbeit ablenken",
+            "Beendet die Arbeit selten"
+          ]}
+        }
+      },
+      {
+        id: "sorgfalt",
+        title: "Gestaltet Arbeiten sorgfältig und zuverlässig",
+        levels: {
+          vv: { color: "blue", points: [
+            "Arbeitet mündlich und schriftlich sorgfältig, zuverlässig und selbständig",
+            "Geht mit dem Material immer korrekt um"
+          ]},
+          g:  { color: "green",points: [
+            "Arbeitet mündlich und schriftlich oft sorgfältig, zuverlässig und selbständig",
+            "Geht mit dem Material korrekt um"
+          ]},
+          ge: { color: "orange",points: [
+            "Arbeitet mündlich und schriftlich teilweise unsorgfältig, unzuverlässig und selten selbständig",
+            "Geht mit dem Material teilweise korrekt um"
+          ]},
+          u:  { color: "red", points: [
+            "Arbeitet mündlich und schriftlich unsorgfältig, unzuverlässig und selten selbständig",
+            "Geht mit dem Material nicht korrekt um"
+          ]}
+        }
+      },
+      {
+        id: "zusammenarbeit",
+        title: "Kann mit anderen zusammenarbeiten",
+        levels: {
+          vv: { color: "blue", points: [
+            "Arbeitet mit allen zusammen",
+            "Hilft anderen",
+            "Übernimmt Verantwortung"
+          ]},
+          g:  { color: "green",points: [
+            "Arbeitet mit anderen zusammen",
+            "Hilft anderen"
+          ]},
+          ge: { color: "orange",points: [
+            "Hat Schwierigkeiten, mit Andern zusammenzuarbeiten",
+            "Hilft anderen nur mit Aufforderung der LP."
+          ]},
+          u:  { color: "red", points: [
+            "Stört die Zusammenarbeit in der Gruppe",
+            "Hilft anderen nur wenn es sein muss"
+          ]}
+        }
+      },
+      {
+        id: "selbsteinschaetzung",
+        title: "Schätzt die eigene Leistungsfähigkeit realistisch ein",
+        levels: {
+          vv: { color: "blue", points: [
+            "Kennt seine Stärken sehr gut",
+            "Kennt seine Schwächen sehr gut",
+            "Setzt sich Ziele, die erfüllt werden können und herausfordern"
+          ]},
+          g:  { color: "green",points: [
+            "Kennt seine Stärken",
+            "Kennt seine Schwächen",
+            "Setzt sich selbst realistische Ziele"
+          ]},
+          ge: { color: "orange",points: [
+            "Kennt seine Stärken teilweise",
+            "Kennt seine Schwächen teilweise",
+            "Braucht Hilfe, um realistische Ziele zu setzen"
+          ]},
+          u:  { color: "red", points: [
+            "Kennt seine Stärken nicht",
+            "Kennt seine Schwächen nicht",
+            "Kann sich kaum realistische Ziele setzen"
+          ]}
+        }
+      }
     ]
   },
   {
     group: "Sozialverhalten",
-    badge: "2 Kriterien",
     items: [
-      { id: "regeln", title: "Akzeptiert die Regeln des schulischen Zusammenlebens" },
-      { id: "respekt", title: "Begegnet den Lehrpersonen und Mitschülern respektvoll" }
+      {
+        id: "regeln",
+        title: "Akzeptiert die Regeln des schulischen Zusammenlebens",
+        levels: {
+          vv: { color: "blue", points: [
+            "Hält Regeln ein",
+            "Führt Ämtli selbständig aus"
+          ]},
+          g:  { color: "green",points: [
+            "Hält Regeln ein",
+            "Führt Ämtli aus"
+          ]},
+          ge: { color: "orange",points: [
+            "Hält Regeln nach Aufforderung ein",
+            "Führt sein Ämtli bei Aufforderung aus"
+          ]},
+          u:  { color: "red", points: [
+            "Hält Regeln nicht ein",
+            "Führt sein Ämtli mit Hilfe aus"
+          ]}
+        }
+      },
+      {
+        id: "respekt",
+        title: "Begegnet den Lehrpersonen und Mitschülern respektvoll",
+        levels: {
+          vv: { color: "blue", points: [
+            "Begegnet seiner LP äusserst respektvoll",
+            "Begegnet seinen Mitschülern respektvoll"
+          ]},
+          g:  { color: "green",points: [
+            "Begegnet seiner LP grundsätzlich respektvoll",
+            "Begegnet seinen Mitschülern grundsätzlich respektvoll"
+          ]},
+          ge: { color: "orange",points: [
+            "Begegnet seiner LP teilweise respektvoll",
+            "Begegnet seinen Mitschülern teilweise respektvoll"
+          ]},
+          u:  { color: "red", points: [
+            "Begegnet seiner LP selten respektvoll",
+            "Begegnet seinen Mitschülern selten respektvoll"
+          ]}
+        }
+      }
     ]
   }
 ];
@@ -44,125 +225,43 @@ function formatDateCH(iso){
   const [y,m,d] = iso.split("-");
   return `${d}.${m}.${y}`;
 }
-
 function pronouns(g){
-  if(g === "w"){
-    return { subj: "sie", obj: "sie", poss: "ihr", dat: "ihr" };
-  }
-  return { subj: "er", obj: "ihn", poss: "sein", dat: "ihm" };
+  return (g === "w")
+    ? { subj:"sie", obj:"sie", poss:"ihr", dat:"ihr" }
+    : { subj:"er", obj:"ihn", poss:"sein", dat:"ihm" };
 }
 
-// markierbare „Feinjustier-Wörter“
+// markierbare Wörter im Editor
 function mod(w){ return `<span class="mod">${w}</span>`; }
-
-// Wordsets pro Stufe (damit der Text nicht immer gleich klingt)
-function wordset(level){
-  switch(level){
-    case "vv":
-      return {
-        freq: mod("durchwegs"),
-        often: mod("sehr häufig"),
-        can: mod("problemlos"),
-        needs: mod("kaum"),
-        tone: mod("sehr sicher"),
-        improvement: mod("stets zuverlässig")
-      };
-    case "g":
-      return {
-        freq: mod("meist"),
-        often: mod("oft"),
-        can: mod("gut"),
-        needs: mod("selten"),
-        tone: mod("sicher"),
-        improvement: mod("in der Regel zuverlässig")
-      };
-    case "ge":
-      return {
-        freq: mod("manchmal"),
-        often: mod("gelegentlich"),
-        can: mod("noch nicht durchgehend"),
-        needs: mod("immer wieder"),
-        tone: mod("noch nicht stabil"),
-        improvement: mod("mit Unterstützung zunehmend")
-      };
-    default:
-      return {
-        freq: mod("selten"),
-        often: mod("nur vereinzelt"),
-        can: mod("noch nicht so gut"),
-        needs: mod("häufig"),
-        tone: mod("hat noch Mühe"),
-        improvement: mod("braucht deutlich Unterstützung")
-      };
-  }
+function pickWeichmacher(level){
+  if(level === "vv") return mod("durchwegs");
+  if(level === "g")  return mod("meist");
+  if(level === "ge") return mod("manchmal");
+  return mod("selten");
+}
+function joined(arr){
+  const a = arr.filter(Boolean);
+  if(a.length === 0) return "";
+  if(a.length === 1) return a[0];
+  if(a.length === 2) return `${a[0]} und ${a[1]}`;
+  return `${a.slice(0,-1).join(", ")} und ${a[a.length-1]}`;
 }
 
-/*
-  Zeugnis-ähnliche Satzbausteine pro Kriterium:
-  - präzise
-  - aussagekräftig
-  - mit markierten Feinjustier-Wörtern
-*/
-function sentence(itemId, level, ctx){
-  const { name, P } = ctx;
-  const W = wordset(level);
+/* ===== State (nur RAM, keine Datenspeicherung) ===== */
+const state = {
+  checks: {},   // checks[itemId][levelKey][idx] = true/false
+  overall: {},  // overall[itemId] = "auto" | "vv" | "g" | "ge" | "u"
+};
 
-  switch(itemId){
-
-    case "puenktlich":
-      if(level === "vv") return `${name} ist bei Unterrichtsbeginn ${W.freq} startbereit und bringt Material sowie Hausaufgaben ${mod("immer")} vollständig mit.`;
-      if(level === "g")  return `${name} ist bei Unterrichtsbeginn ${W.freq} startbereit; Material und Hausaufgaben sind ${mod("in der Regel")} vollständig.`;
-      if(level === "ge") return `${name} ist bei Unterrichtsbeginn ${W.freq} startbereit und benötigt ${mod("gelegentlich")} noch Zeit für die Vorbereitung; Material oder Hausaufgaben fehlen ${W.often}.`;
-      return `${name} kommt ${W.freq} nach dem Läuten und ist bei Unterrichtsbeginn ${W.tone}; Material oder Hausaufgaben fehlen ${W.needs}.`;
-
-    case "aktiv":
-      if(level === "vv") return `${name} beteiligt sich ${W.freq} aktiv, stellt Fragen und bringt ${mod("eigene Ideen")} ein; ${P.subj} sucht ${mod("selbstständig")} nach Lösungswegen.`;
-      if(level === "g")  return `${name} beteiligt sich ${W.freq} aktiv, stellt Fragen und bringt ${W.often} eigene Gedanken ein.`;
-      if(level === "ge") return `${name} beteiligt sich ${W.freq}; Fragen oder eigene Ideen kommen ${W.often} erst nach Impulsen, und ${P.subj} zeigt Initiative ${W.can}.`;
-      return `${name} beteiligt sich ${W.freq}; ${P.subj} stellt ${W.often} kaum Fragen und zeigt Initiative ${W.can}.`;
-
-    case "konzentriert":
-      if(level === "vv") return `${name} arbeitet ${W.freq} konzentriert und ausdauernd und beendet Aufgaben ${mod("eigenständig")} bis zum Ende.`;
-      if(level === "g")  return `${name} arbeitet ${W.freq} konzentriert und bleibt ${W.often} dran; Aufgaben werden ${mod("meist vollständig")} abgeschlossen.`;
-      if(level === "ge") return `${name} arbeitet ${W.freq} konzentriert, lässt sich jedoch ${W.needs} ablenken; bei längeren Aufgaben fällt das Dranbleiben ${W.can} leicht.`;
-      return `${name} lässt sich ${W.needs} ablenken und ${P.subj} ${W.tone}, um bei Aufgaben dranzubleiben; Arbeiten bleiben ${W.often} unvollständig.`;
-
-    case "sorgfalt":
-      if(level === "vv") return `${name} arbeitet mündlich und schriftlich ${W.freq} sorgfältig und ${mod("präzise")}; ${P.subj} geht mit Material ${mod("stets")} korrekt um.`;
-      if(level === "g")  return `${name} arbeitet ${W.freq} sorgfältig und zuverlässig; im Umgang mit Material handelt ${P.subj} ${mod("grundsätzlich")} korrekt.`;
-      if(level === "ge") return `${name} arbeitet ${W.freq} sorgfältig; bei Genauigkeit und Verlässlichkeit zeigt ${P.subj} ${W.needs} Schwankungen und braucht ${W.often} Erinnerungen im Materialumgang.`;
-      return `${name} arbeitet ${W.freq} sorgfältig und ${P.subj} ${W.tone}; Genauigkeit, Verlässlichkeit und korrekter Materialumgang gelingen ${W.often} nur mit Unterstützung.`;
-
-    case "zusammenarbeit":
-      if(level === "vv") return `${name} arbeitet ${W.freq} kooperativ mit anderen zusammen, unterstützt Mitschülerinnen und Mitschüler ${W.often} und übernimmt ${mod("verantwortungsvoll")} Aufgaben in der Gruppe.`;
-      if(level === "g")  return `${name} kann ${W.freq} gut mit anderen zusammenarbeiten und unterstützt andere ${mod("bei Bedarf")}.`;
-      if(level === "ge") return `${name} kann ${W.freq} mit anderen zusammenarbeiten; in Gruppenprozessen braucht ${P.subj} ${W.often} Anleitung und übernimmt Verantwortung ${W.can}.`;
-      return `${name} hat in der Zusammenarbeit ${W.tone}; Gruppenprozesse werden ${W.needs} gestört und Unterstützung für andere erfolgt ${W.often} nicht freiwillig.`;
-
-    case "selbsteinschaetzung":
-      if(level === "vv") return `${name} schätzt die eigene Leistungsfähigkeit ${W.freq} realistisch ein, kennt Stärken und Entwicklungspunkte gut und setzt sich ${mod("passende")} Ziele.`;
-      if(level === "g")  return `${name} schätzt die eigene Leistungsfähigkeit ${W.freq} realistisch ein und setzt sich ${mod("realistische")} Ziele.`;
-      if(level === "ge") return `${name} schätzt die eigene Leistungsfähigkeit ${W.freq} realistisch ein; beim Formulieren realistischer Ziele braucht ${P.subj} ${W.often} Unterstützung.`;
-      return `${name} kann die eigene Leistungsfähigkeit ${W.freq} einschätzen und ${P.subj} ${W.tone}; passende Ziele gelingen ${W.often} nur mit Hilfe.`;
-
-    case "regeln":
-      if(level === "vv") return `${name} hält sich ${W.freq} an Regeln des schulischen Zusammenlebens und erledigt Ämtli ${mod("selbstständig")} sowie ${W.improvement}.`;
-      if(level === "g")  return `${name} hält sich ${W.freq} an Regeln und erledigt Ämtli ${W.often} zuverlässig.`;
-      if(level === "ge") return `${name} hält sich ${W.freq} an Regeln; Ämtli werden ${W.often} erst nach Erinnerung ausgeführt.`;
-      return `${name} hält Regeln ${W.freq} ein und ${P.subj} ${W.tone}; Ämtli werden ${W.often} nur mit Unterstützung erledigt.`;
-
-    case "respekt":
-      if(level === "vv") return `${name} begegnet Lehrpersonen und Mitschülerinnen sowie Mitschülern ${W.freq} respektvoll und kommuniziert ${mod("wertschätzend")}.`;
-      if(level === "g")  return `${name} begegnet anderen ${W.freq} respektvoll und achtet ${W.often} auf einen angemessenen Umgangston.`;
-      if(level === "ge") return `${name} begegnet anderen ${W.freq} respektvoll; im Umgangston braucht ${P.subj} ${W.often} Erinnerung.`;
-      return `${name} begegnet anderen ${W.freq} respektvoll und ${P.subj} ${W.tone}; der Umgangston ist ${W.needs} nicht angemessen.`;
-
-    default:
-      return `${name} zeigt ${W.freq} eine ${W.tone} Entwicklung.`;
+function ensureItemState(item){
+  if(!state.checks[item.id]) state.checks[item.id] = {};
+  for(const lk of LEVEL_ORDER_UI){
+    if(!state.checks[item.id][lk]) state.checks[item.id][lk] = {};
   }
+  if(!state.overall[item.id]) state.overall[item.id] = "auto";
 }
 
-/* Raster UI */
+/* ===== Raster UI bauen ===== */
 function buildRaster(){
   const root = el("rasterRoot");
   root.innerHTML = "";
@@ -171,134 +270,262 @@ function buildRaster(){
     const wrap = document.createElement("div");
     wrap.className = "group";
 
-    const title = document.createElement("div");
-    title.className = "group__title";
-    title.innerHTML = `<div>${group.group}</div><div class="badge">${group.badge}</div>`;
-    wrap.appendChild(title);
+    const head = document.createElement("div");
+    head.className = "group__title";
+    head.innerHTML = `<div>${group.group}</div><div class="muted">${group.items.length} Kriterien</div>`;
+    wrap.appendChild(head);
 
     group.items.forEach(item => {
-      const row = document.createElement("div");
-      row.className = "item";
+      ensureItemState(item);
 
-      const head = document.createElement("div");
-      head.className = "item__head";
+      const block = document.createElement("div");
+      block.className = "detailItem";
 
-      const name = document.createElement("div");
-      name.className = "item__name";
-      name.textContent = item.title;
+      const top = document.createElement("div");
+      top.className = "detailTop";
+      top.innerHTML = `
+        <div class="detailTitle">${item.title}</div>
+        <div class="overall">
+          <span class="overall__label">Gesamtstufe:</span>
+          <select data-overall="${item.id}" class="overall__select">
+            <option value="auto">Auto</option>
+            <option value="vv">++</option>
+            <option value="g">+</option>
+            <option value="ge">-</option>
+            <option value="u">--</option>
+          </select>
+        </div>
+      `;
+      block.appendChild(top);
 
-      const opts = document.createElement("div");
-      opts.className = "item__opts";
+      const grid = document.createElement("div");
+      grid.className = "levelGrid";
 
-      LEVELS.forEach(L => {
-        const label = document.createElement("label");
-        label.className = "opt";
+      // UI: vv, g, ge, u (farblich intuitiv)
+      LEVEL_ORDER_UI.forEach(lk => {
+        const col = document.createElement("div");
+        col.className = `levelCol levelCol--${item.levels[lk].color}`;
 
-        const input = document.createElement("input");
-        input.type = "radio";
-        input.name = item.id;
-        input.value = L.key;
-        if(L.key === "g") input.checked = true;
+        const cap = document.createElement("div");
+        cap.className = "levelCap";
+        cap.innerHTML = `
+          <div class="levelCap__short">${LEVEL_LABEL[lk]}</div>
+          <div class="levelCap__long">${LEVEL_TEXT[lk]}</div>
+        `;
+        col.appendChild(cap);
 
-        input.addEventListener("change", () => {
-          if(!editorTouched) generateText();
+        const list = document.createElement("div");
+        list.className = "pointList";
+
+        item.levels[lk].points.forEach((p, idx) => {
+          const checked = !!state.checks[item.id][lk][idx];
+          const lab = document.createElement("label");
+          lab.className = "point";
+          lab.innerHTML = `
+            <input type="checkbox" ${checked ? "checked":""}
+              data-item="${item.id}" data-level="${lk}" data-idx="${idx}">
+            <span>${p}</span>
+          `;
+          list.appendChild(lab);
         });
 
-        const box = document.createElement("div");
-        box.innerHTML = `<div class="opt__t">${L.label}</div>`;
-
-        label.appendChild(input);
-        label.appendChild(box);
-        opts.appendChild(label);
+        col.appendChild(list);
+        grid.appendChild(col);
       });
 
-      head.appendChild(name);
-      head.appendChild(opts);
-      row.appendChild(head);
-      wrap.appendChild(row);
+      block.appendChild(grid);
+      wrap.appendChild(block);
     });
 
     root.appendChild(wrap);
   });
+
+  // Events
+  root.querySelectorAll('input[type="checkbox"][data-item]').forEach(cb => {
+    cb.addEventListener("change", (e) => {
+      const itemId = e.target.dataset.item;
+      const lk = e.target.dataset.level;
+      const idx = Number(e.target.dataset.idx);
+      if(!state.checks[itemId]) state.checks[itemId] = {};
+      if(!state.checks[itemId][lk]) state.checks[itemId][lk] = {};
+      state.checks[itemId][lk][idx] = e.target.checked;
+      if(!editorTouched) generateText();
+    });
+  });
+
+  root.querySelectorAll('select[data-overall]').forEach(sel => {
+    sel.value = state.overall[sel.dataset.overall] || "auto";
+    sel.addEventListener("change", (e) => {
+      state.overall[e.target.dataset.overall] = e.target.value;
+      if(!editorTouched) generateText();
+    });
+  });
+}
+
+/* ===== Gesamtstufe berechnen ===== */
+function computeOverallLevel(item){
+  const forced = state.overall[item.id];
+  if(forced && forced !== "auto") return forced;
+
+  const counts = {};
+  for(const lk of LEVEL_ORDER_UI){
+    const m = state.checks[item.id][lk] || {};
+    counts[lk] = Object.values(m).filter(Boolean).length;
+  }
+
+  const total = Object.values(counts).reduce((a,b)=>a+b,0);
+  if(total === 0) return "g"; // Standard
+
+  const sorted = LEVEL_ORDER_UI
+    .map(lk => ({lk, c: counts[lk]}))
+    .sort((a,b) => b.c - a.c);
+
+  const top = sorted[0];
+  const tie = sorted.filter(x => x.c === top.c);
+
+  if(tie.length > 1){
+    // Praxisnah: g bevorzugen bei Gleichstand
+    const pref = ["g","vv","ge","u"];
+    for(const p of pref){
+      if(tie.some(t => t.lk === p)) return p;
+    }
+  }
+  return top.lk;
 }
 
 function currentSelections(){
   const out = {};
   DATA.forEach(g => g.items.forEach(item => {
-    const checked = document.querySelector(`input[name="${item.id}"]:checked`);
-    out[item.id] = checked ? checked.value : "g";
+    ensureItemState(item);
+    out[item.id] = computeOverallLevel(item);
   }));
   return out;
 }
 
-/* Editor handling */
-let editorTouched = false;
-
-function setEditorHTML(html){
-  el("reportEditor").innerHTML = html;
+/* ===== Text aus angekreuzten Punkten ===== */
+function collectSelectedPoints(item){
+  const selected = [];
+  for(const lk of LEVEL_ORDER_UI){
+    const pts = item.levels[lk].points;
+    const map = state.checks[item.id][lk] || {};
+    pts.forEach((p, idx) => { if(map[idx]) selected.push(p); });
+  }
+  return selected;
 }
+
+function sentenceForItem(item, overallLevel, ctx){
+  const { name } = ctx;
+  const weich = pickWeichmacher(overallLevel);
+  const selected = collectSelectedPoints(item);
+
+  if(selected.length === 0){
+    // wenn nichts angekreuzt: kurzer Standardsatz
+    return `${name} zeigt im Bereich „${item.title}“ ${weich} eine ${mod("gute")} Entwicklung.`;
+  }
+
+  // Zeugnis-Satz (präzise, aber schnell editierbar)
+  return `${name} zeigt im Bereich „${item.title}“ ${weich} folgendes Verhalten: ${joined(selected)}.`;
+}
+
+/* ===== Editor ===== */
+let editorTouched = false;
+function setEditorHTML(html){ el("reportEditor").innerHTML = html; }
 function getEditorPlainText(){
   const tmp = document.createElement("div");
   tmp.innerHTML = el("reportEditor").innerHTML;
   return (tmp.innerText || "").trim();
 }
 
-/* Text generation */
 function generateText(){
   const name = el("studentName").value.trim() || "Das Kind";
   const P = pronouns(el("gender").value);
-  const sel = currentSelections();
+  const selections = currentSelections();
 
-  const intro =
-    `${name} wird im Bereich der überfachlichen Kompetenzen wie folgt eingeschätzt:`;
+  const intro = `${name} wird im Bereich der überfachlichen Kompetenzen wie folgt eingeschätzt:`;
 
-  const a = [];
-  const s = [];
+  const arbeits = [];
+  const sozial = [];
 
   DATA.forEach(group => {
     group.items.forEach(item => {
-      const lvl = sel[item.id];
-      const sent = sentence(item.id, lvl, { name, P });
-      if(group.group === "Arbeits- und Lernverhalten") a.push(sent);
-      else s.push(sent);
+      const lvl = selections[item.id];
+      const s = sentenceForItem(item, lvl, { name, P });
+      if(group.group === "Arbeits- und Lernverhalten") arbeits.push(s);
+      else sozial.push(s);
     });
   });
 
-  // bewusst 2 Absätze (wie Zeugnis), aber kompakt
   const html =
     `${intro}<br><br>` +
-    `<strong>Arbeits- und Lernverhalten:</strong> ${a.join(" ")}<br><br>` +
-    `<strong>Sozialverhalten:</strong> ${s.join(" ")}`;
+    `<strong>Arbeits- und Lernverhalten:</strong> ${arbeits.join(" ")}<br><br>` +
+    `<strong>Sozialverhalten:</strong> ${sozial.join(" ")}`;
 
   setEditorHTML(html);
 }
 
-/* Defaults */
+/* ===== Defaults / Buttons ===== */
 function fillDefaults(){
   el("place").value = DEFAULT_PLACE;
   el("date").value = toISODate(new Date());
 }
 
-/* Reset / Regenerate */
 function resetStandard(){
+  // alles löschen + overall auto
   DATA.forEach(g => g.items.forEach(item => {
-    const r = document.querySelector(`input[name="${item.id}"][value="g"]`);
-    if(r) r.checked = true;
+    ensureItemState(item);
+    state.overall[item.id] = "auto";
+    for(const lk of LEVEL_ORDER_UI){
+      state.checks[item.id][lk] = {};
+    }
   }));
   editorTouched = false;
+  buildRaster();      // UI neu rendern
   generateText();
 }
+
 function regenerateOverwrite(){
   editorTouched = false;
   generateText();
 }
 
-/* Copy plain */
 async function copyPlain(){
   await navigator.clipboard.writeText(getEditorPlainText());
 }
 
-/* Print building */
+/* ===== PDF Tabellen (Übersicht mit Kreuzchen) ===== */
+function buildPrintTables(selections){
+  const headerRight = `
+    <div class="zHeaderRight">
+      <div class="rot">${LEVEL_TEXT["u"]}</div>
+      <div class="rot">${LEVEL_TEXT["ge"]}</div>
+      <div class="rot">${LEVEL_TEXT["g"]}</div>
+      <div class="rot">${LEVEL_TEXT["vv"]}</div>
+    </div>
+  `;
+
+  function rowHTML(item){
+    const chosen = selections[item.id] || "g";
+    const rightMarks = LEVEL_ORDER_PDF.map(lk => {
+      const on = (lk === chosen) ? "mark mark--on" : "mark";
+      return `<div class="${on}"></div>`;
+    }).join("");
+    return `
+      <div class="zRowLeft">${item.title}</div>
+      <div class="zRowRight">${rightMarks}</div>
+    `;
+  }
+
+  function makeTable(group){
+    const top = `<div></div>${headerRight}`;
+    const rows = group.items.map(rowHTML).join("");
+    return top + rows;
+  }
+
+  el("printTableArbeits").innerHTML = makeTable(DATA[0]);
+  el("printTableSozial").innerHTML  = makeTable(DATA[1]);
+}
+
+/* ===== Print füllen ===== */
 function buildPrint(){
   const studentName = el("studentName").value.trim() || "—";
   const className = el("className").value.trim() || "—";
@@ -306,19 +533,17 @@ function buildPrint(){
   const place = el("place").value.trim() || "—";
   const dateCH = formatDateCH(el("date").value) || "—";
 
-  // Formularkopf: alle relevanten Angaben
   el("printHead").textContent =
     `Name: ${studentName} · Klasse: ${className} · Ort/Datum: ${place}, ${dateCH} · Lehrperson: ${teacherName}`;
 
-  // PDF Text: immer schwarz (Plaintext)
+  el("sigTeacherCap").textContent =
+    (teacherName && teacherName !== "—") ? `Lehrperson: ${teacherName}` : "Lehrperson";
+
+  const selections = currentSelections();
+  buildPrintTables(selections);
+
   el("printText").textContent = getEditorPlainText();
 
-  // Lehrperson: Name steht bereits dort
-  el("sigTeacherCap").textContent = (teacherName && teacherName !== "—")
-    ? `Lehrperson: ${teacherName}`
-    : "Lehrperson";
-
-  // Bemerkungen Lehrperson: Text (falls vorhanden) + Linien
   const remarks = (el("teacherRemarks").value || "").trim();
   if(remarks){
     el("printTeacherRemarks").innerHTML = "";
@@ -333,72 +558,98 @@ function buildPrint(){
   }
 }
 
-/*
-  PDF Export Fix:
-  - PrintArea liegt sonst offscreen -> html2canvas kann weiss rendern.
-  - Wir holen es temporär in den Viewport (opacity 0), exportieren, setzen zurück.
-*/
+/* ===== PDF Export robust: Klon in DOM → html2canvas → jsPDF ===== */
 async function exportPDF(){
   buildPrint();
 
-  const area = el("printArea");
+  const sourcePage = document.querySelector("#printArea .printPage");
+  if(!sourcePage){
+    alert("PDF-Fehler: Druckbereich nicht gefunden.");
+    return;
+  }
 
-  const prev = {
-    className: area.className,
-    position: area.style.position,
-    left: area.style.left,
-    top: area.style.top,
-    opacity: area.style.opacity,
-    width: area.style.width,
-    aria: area.getAttribute("aria-hidden")
-  };
+  const clone = sourcePage.cloneNode(true);
 
-  // In den Viewport holen, aber unsichtbar
-  area.className = "printArea";
-  area.style.position = "fixed";
-  area.style.left = "0";
-  area.style.top = "0";
-  area.style.opacity = "0";
-  area.style.width = "210mm";
-  area.setAttribute("aria-hidden", "false");
+  const staging = document.createElement("div");
+  staging.id = "pdf-staging";
+  staging.style.position = "fixed";
+  staging.style.left = "0";
+  staging.style.top = "0";
+  staging.style.width = "210mm";
+  staging.style.background = "#ffffff";
+  staging.style.zIndex = "999999";
+  staging.style.pointerEvents = "none";
+  staging.style.opacity = "1";
+  staging.style.visibility = "visible";
+
+  staging.appendChild(clone);
+  document.body.appendChild(staging);
 
   await new Promise(r => requestAnimationFrame(r));
-
-  const filename =
-    `Ueberfachliche_Kompetenzen_${(el("studentName").value || "Kind").trim().replaceAll(" ", "_")}.pdf`;
-
-  const opt = {
-    margin: [0,0,0,0],
-    filename,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, backgroundColor: "#ffffff", useCORS: true },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-  };
+  await new Promise(r => setTimeout(r, 80));
 
   try{
-    await html2pdf().set(opt).from(area).save();
+    const canvas = await window.html2canvas(clone, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.98);
+
+    const jsPDF =
+      (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF :
+      window.jsPDF ? window.jsPDF : null;
+
+    if(!jsPDF) throw new Error("jsPDF nicht verfügbar.");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageW = 210;
+    const pageH = 297;
+
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    let y = 0;
+    let remaining = imgH;
+
+    pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
+
+    remaining -= pageH;
+    y -= pageH;
+
+    while(remaining > 0){
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, y, imgW, imgH);
+      remaining -= pageH;
+      y -= pageH;
+    }
+
+    const filename =
+      `Ueberfachliche_Kompetenzen_${(el("studentName").value || "Kind").trim().replaceAll(" ", "_")}.pdf`;
+
+    pdf.save(filename);
+
+  } catch(err){
+    console.error(err);
+    alert("PDF-Fehler. Bitte Konsole öffnen (F12) und Fehlermeldung prüfen.");
   } finally {
-    // Zurücksetzen
-    area.className = prev.className;
-    area.style.position = prev.position;
-    area.style.left = prev.left;
-    area.style.top = prev.top;
-    area.style.opacity = prev.opacity;
-    area.style.width = prev.width;
-    area.setAttribute("aria-hidden", prev.aria ?? "true");
+    const s = document.getElementById("pdf-staging");
+    if(s) document.body.removeChild(s);
   }
 }
 
-/* Diktat: contenteditable */
+/* ===== Diktat ===== */
 function makeDictationEditable(buttonEl, targetEl){
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
     buttonEl.disabled = true;
     buttonEl.title = "Diktierfunktion wird von diesem Browser nicht unterstützt.";
     return;
   }
-
-  const rec = new SpeechRecognition();
+  const rec = new SR();
   rec.lang = "de-CH";
   rec.interimResults = false;
   rec.continuous = true;
@@ -421,14 +672,12 @@ function makeDictationEditable(buttonEl, targetEl){
   }
 
   rec.onresult = (event) => {
-    let finalText = "";
+    let out = "";
     for(let i = event.resultIndex; i < event.results.length; i++){
-      if(event.results[i].isFinal){
-        finalText += event.results[i][0].transcript;
-      }
+      if(event.results[i].isFinal) out += event.results[i][0].transcript;
     }
-    if(finalText && finalText.trim()){
-      insertText(finalText.trim() + " ");
+    if(out && out.trim()){
+      insertText(out.trim() + " ");
       editorTouched = true;
     }
   };
@@ -449,16 +698,14 @@ function makeDictationEditable(buttonEl, targetEl){
   buttonEl.addEventListener("click", () => running ? stop() : start());
 }
 
-/* Diktat: textarea */
 function makeDictationTextarea(buttonEl, textarea){
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
     buttonEl.disabled = true;
     buttonEl.title = "Diktierfunktion wird von diesem Browser nicht unterstützt.";
     return;
   }
-
-  const rec = new SpeechRecognition();
+  const rec = new SR();
   rec.lang = "de-CH";
   rec.interimResults = false;
   rec.continuous = true;
@@ -475,15 +722,11 @@ function makeDictationTextarea(buttonEl, textarea){
   }
 
   rec.onresult = (event) => {
-    let finalText = "";
+    let out = "";
     for(let i = event.resultIndex; i < event.results.length; i++){
-      if(event.results[i].isFinal){
-        finalText += event.results[i][0].transcript;
-      }
+      if(event.results[i].isFinal) out += event.results[i][0].transcript;
     }
-    if(finalText && finalText.trim()){
-      insertAtCursor(finalText.trim() + " ");
-    }
+    if(out && out.trim()) insertAtCursor(out.trim() + " ");
   };
 
   function start(){
@@ -502,7 +745,7 @@ function makeDictationTextarea(buttonEl, textarea){
   buttonEl.addEventListener("click", () => running ? stop() : start());
 }
 
-/* Init */
+/* ===== Init ===== */
 buildRaster();
 fillDefaults();
 generateText();
@@ -512,15 +755,12 @@ el("btnRegen").addEventListener("click", regenerateOverwrite);
 el("btnPdf").addEventListener("click", exportPDF);
 el("btnCopy").addEventListener("click", copyPlain);
 
-// Sobald Lehrperson tippt: nicht mehr automatisch überschreiben
 el("reportEditor").addEventListener("input", () => { editorTouched = true; });
 
-// Bei Änderungen im Kopf: neu erzeugen (aber nur, wenn noch nicht manuell editiert)
 ["studentName","gender"].forEach(id => {
   el(id).addEventListener("input", () => { if(!editorTouched) generateText(); });
 });
 el("gender").addEventListener("change", () => { if(!editorTouched) generateText(); });
 
-// Diktat aktivieren
 makeDictationEditable(el("btnDictateText"), el("reportEditor"));
 makeDictationTextarea(el("btnDictateRemarks"), el("teacherRemarks"));
