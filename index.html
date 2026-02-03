@@ -6,7 +6,7 @@
   <title>Überfachliche Kompetenzen</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- PDF Export (client-side) -->
+  <!-- html2pdf bundle bringt html2canvas + jsPDF mit -->
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.3/dist/html2pdf.bundle.min.js"></script>
 </head>
 
@@ -15,19 +15,13 @@
     <div class="topbar__inner">
       <div class="brand">
         <div class="brand__title">Überfachliche Kompetenzen</div>
-        <div class="brand__subtitle">Raster → Auswertungstext → PDF</div>
+        <div class="brand__subtitle">Raster → Text → PDF</div>
       </div>
 
       <div class="actions">
-        <button id="btnReset" class="btn btn--ghost" type="button" title="Raster auf Standard (Gut) setzen">
-          Standard
-        </button>
-        <button id="btnRegen" class="btn" type="button" title="Text neu aus Raster erzeugen (überschreibt Editor)">
-          Text neu erzeugen
-        </button>
-        <button id="btnPdf" class="btn btn--primary" type="button">
-          PDF erstellen
-        </button>
+        <button id="btnReset" class="btn btn--ghost" type="button" title="Raster auf Standard setzen">Standard</button>
+        <button id="btnRegen" class="btn" type="button" title="Text neu aus Raster erzeugen (überschreibt Editor)">Text neu erzeugen</button>
+        <button id="btnPdf" class="btn btn--primary" type="button">PDF erstellen</button>
       </div>
     </div>
   </header>
@@ -36,7 +30,6 @@
 
     <section class="card">
       <h2>Formularkopf</h2>
-
       <div class="grid grid--4">
         <label class="field">
           <span>Name Kind</span>
@@ -58,7 +51,7 @@
 
         <label class="field">
           <span>Name Lehrperson</span>
-          <input id="teacherName" type="text" autocomplete="off" placeholder="z. B. R. Speerli" />
+          <input id="teacherName" type="text" autocomplete="off" placeholder="Vorname Nachname" />
         </label>
 
         <label class="field">
@@ -73,14 +66,16 @@
       </div>
 
       <p class="hint">
-        Rechtschreibprüfung: Im Editor aktiv (Browser). Farbig markierte Wörter sind „Feinjustier-Wörter“.
+        Tipp: Im Text sind „Feinjustier-Wörter“ farbig markiert (z. B. <em>meist</em>, <em>manchmal</em>).
+        In der PDF ist alles schwarz.
       </p>
     </section>
 
     <section class="card">
-      <h2>Beurteilungsraster</h2>
+      <h2>Beurteilungsraster (detailliert)</h2>
       <p class="muted">
-        Pro Kriterium eine Stufe auswählen: <strong>sehr gut ++</strong>, <strong>Gut +</strong>, <strong>Genügend -</strong>, <strong>Ungenügend --</strong>.
+        Kreuze die passenden Beobachtungen an. Die App berechnet daraus eine Gesamtstufe pro Kriterium (Auto),
+        die du bei Bedarf manuell überschreiben kannst.
       </p>
 
       <div id="rasterRoot" class="raster"></div>
@@ -90,38 +85,27 @@
       <div class="row row--between row--center">
         <h2>Auswertungstext</h2>
         <div class="row row--gap">
-          <button id="btnDictateText" class="btn btn--ghost" type="button" title="Diktat starten/stoppen (Browser)">
-            🎤 Diktat
-          </button>
-          <button id="btnCopy" class="btn btn--ghost" type="button" title="Text kopieren (ohne Farben)">
-            Kopieren
-          </button>
+          <button id="btnDictateText" class="btn btn--ghost" type="button">🎤 Diktat</button>
+          <button id="btnCopy" class="btn btn--ghost" type="button" title="Text kopieren (ohne Farben)">Kopieren</button>
         </div>
       </div>
 
       <div class="muted small">
-        Tipp: Du kannst die markierten Wörter direkt ersetzen (z. B. „meist“ → „oft“).
+        Du kannst den Text direkt bearbeiten. Wenn du den Text manuell änderst, wird er nicht mehr automatisch überschrieben.
       </div>
 
       <div id="reportEditor" class="editor" contenteditable="true" spellcheck="true"></div>
 
       <div class="row row--between row--center mt">
         <h3 class="h3">Bemerkungen Lehrperson (optional)</h3>
-        <button id="btnDictateRemarks" class="btn btn--ghost" type="button" title="Diktat starten/stoppen (Browser)">
-          🎤 Diktat
-        </button>
+        <button id="btnDictateRemarks" class="btn btn--ghost" type="button">🎤 Diktat</button>
       </div>
 
-      <textarea
-        id="teacherRemarks"
-        class="textarea"
-        rows="4"
-        spellcheck="true"
-        placeholder="Bemerkungen der Lehrperson (optional)."
-      ></textarea>
+      <textarea id="teacherRemarks" class="textarea" rows="4" spellcheck="true"
+        placeholder="Bemerkungen der Lehrperson (optional)."></textarea>
     </section>
 
-    <!-- PRINT/PDF AREA -->
+    <!-- PRINT/PDF (nicht sichtbar, wird für Export geklont) -->
     <section id="printArea" class="printArea printArea--offscreen" aria-hidden="true">
       <div class="printPage">
         <div class="printHeader">
@@ -129,8 +113,20 @@
           <div id="printHead" class="printMeta"></div>
         </div>
 
+        <div class="zeugnisTitle">Primarschule: Einschätzung zum Lern-, Arbeits- und Sozialverhalten</div>
+
+        <div class="zeugnisSection">
+          <div class="zeugnisSectionHead">Lern und Arbeitsverhalten</div>
+          <div id="printTableArbeits" class="zeugnisTable"></div>
+        </div>
+
+        <div class="zeugnisSection">
+          <div class="zeugnisSectionHead">Sozialverhalten</div>
+          <div id="printTableSozial" class="zeugnisTable"></div>
+        </div>
+
         <div class="printBlock">
-          <div class="printLabel">Auswertung</div>
+          <div class="printLabel">Auswertung (Text)</div>
           <div id="printText" class="printText"></div>
         </div>
 
@@ -142,9 +138,7 @@
         <div class="printBlock">
           <div class="printLabel">Bemerkungen Eltern</div>
           <div class="printLines">
-            <div class="line"></div>
-            <div class="line"></div>
-            <div class="line"></div>
+            <div class="line"></div><div class="line"></div><div class="line"></div>
           </div>
         </div>
 
@@ -177,7 +171,7 @@
         </div>
 
         <div class="printFooter">
-          <div>PS Wädenswil, Schule Untermosen, 2.–4. Klasse</div>
+          <div>PS Wädenswil, Schule Untermosen</div>
         </div>
       </div>
     </section>
