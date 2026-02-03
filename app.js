@@ -1,19 +1,18 @@
-/* Überfachliche Kompetenzen – detailliertes Raster mit farbigen Punkten
-   Quelle der Punkte: Vorlage (2-4KLA_1.PDF) :contentReference[oaicite:1]{index=1}
-   - Pro Kriterium: 4 Spalten (vv/g/ge/u) mit Checkbox-Punkten
-   - Gesamtstufe: Auto (aus Checkboxen) oder manuell überschreiben
-   - PDF: Kopf → Zeugnis-Übersicht (Kreuzchen) → Text → Bemerkungen
-   - PDF robust: html2canvas → jsPDF, Klon im DOM
+/* Überfachliche Kompetenzen – robust + professioneller Text
+   - PDF Export fix: wartet auf Libraries, besseres Error-Logging, stabiler DOM-Klon
+   - PDF Tabelle: sehr gut links → ... → nicht genügend rechts, gefüllte Punkte
+   - Text: Arbeitszeugnis-Stil, Absätze, ohne Titelzitieren
 */
 
 const DEFAULT_PLACE = "Wädenswil";
 
-// Reihenfolge entspricht dem Zeugnis: --, -, +, ++ (rechtsbündig in 4 Spalten)
-const LEVEL_ORDER_PDF = ["u","ge","g","vv"];
-const LEVEL_ORDER_UI  = ["vv","g","ge","u"]; // für farbliche Interpretation + UI-Logik
+// UI-Order (farblogisch) und PDF-Order (gewünschte Reihenfolge)
+const LEVEL_UI = ["vv","g","ge","u"];          // ++, +, -, --
+const LEVEL_PDF = ["vv","g","ge","u"];         // sehr gut → ... → nicht genügend
 const LEVEL_LABEL = { vv:"++", g:"+", ge:"-", u:"--" };
 const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" };
 
+// ===== Rasterdaten (wie in deiner bisherigen Version) =====
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
@@ -214,6 +213,7 @@ const DATA = [
   }
 ];
 
+// ===== Helpers =====
 const el = (id) => document.getElementById(id);
 
 function toISODate(d){
@@ -230,15 +230,7 @@ function pronouns(g){
     ? { subj:"sie", obj:"sie", poss:"ihr", dat:"ihr" }
     : { subj:"er", obj:"ihn", poss:"sein", dat:"ihm" };
 }
-
-// markierbare Wörter im Editor
 function mod(w){ return `<span class="mod">${w}</span>`; }
-function pickWeichmacher(level){
-  if(level === "vv") return mod("durchwegs");
-  if(level === "g")  return mod("meist");
-  if(level === "ge") return mod("manchmal");
-  return mod("selten");
-}
 function joined(arr){
   const a = arr.filter(Boolean);
   if(a.length === 0) return "";
@@ -247,21 +239,33 @@ function joined(arr){
   return `${a.slice(0,-1).join(", ")} und ${a[a.length-1]}`;
 }
 
-/* ===== State (nur RAM, keine Datenspeicherung) ===== */
+function weich(level){
+  if(level === "vv") return mod("durchwegs");
+  if(level === "g")  return mod("meist");
+  if(level === "ge") return mod("manchmal");
+  return mod("selten");
+}
+function qual(level){
+  if(level === "vv") return mod("sehr sicher");
+  if(level === "g")  return mod("sicher");
+  if(level === "ge") return mod("noch nicht durchgehend sicher");
+  return mod("mit deutlicher Unterstützung");
+}
+
+// ===== State (nur RAM) =====
 const state = {
   checks: {},   // checks[itemId][levelKey][idx] = true/false
   overall: {},  // overall[itemId] = "auto" | "vv" | "g" | "ge" | "u"
 };
-
 function ensureItemState(item){
   if(!state.checks[item.id]) state.checks[item.id] = {};
-  for(const lk of LEVEL_ORDER_UI){
+  for(const lk of LEVEL_UI){
     if(!state.checks[item.id][lk]) state.checks[item.id][lk] = {};
   }
   if(!state.overall[item.id]) state.overall[item.id] = "auto";
 }
 
-/* ===== Raster UI bauen ===== */
+// ===== Raster UI =====
 function buildRaster(){
   const root = el("rasterRoot");
   root.innerHTML = "";
@@ -301,8 +305,7 @@ function buildRaster(){
       const grid = document.createElement("div");
       grid.className = "levelGrid";
 
-      // UI: vv, g, ge, u (farblich intuitiv)
-      LEVEL_ORDER_UI.forEach(lk => {
+      LEVEL_UI.forEach(lk => {
         const col = document.createElement("div");
         col.className = `levelCol levelCol--${item.levels[lk].color}`;
 
@@ -340,7 +343,7 @@ function buildRaster(){
     root.appendChild(wrap);
   });
 
-  // Events
+  // Checkbox events
   root.querySelectorAll('input[type="checkbox"][data-item]').forEach(cb => {
     cb.addEventListener("change", (e) => {
       const itemId = e.target.dataset.item;
@@ -353,6 +356,7 @@ function buildRaster(){
     });
   });
 
+  // Overall override
   root.querySelectorAll('select[data-overall]').forEach(sel => {
     sel.value = state.overall[sel.dataset.overall] || "auto";
     sel.addEventListener("change", (e) => {
@@ -362,30 +366,28 @@ function buildRaster(){
   });
 }
 
-/* ===== Gesamtstufe berechnen ===== */
+// ===== Auto-Gesamtstufe =====
 function computeOverallLevel(item){
   const forced = state.overall[item.id];
   if(forced && forced !== "auto") return forced;
 
   const counts = {};
-  for(const lk of LEVEL_ORDER_UI){
+  for(const lk of LEVEL_UI){
     const m = state.checks[item.id][lk] || {};
     counts[lk] = Object.values(m).filter(Boolean).length;
   }
 
   const total = Object.values(counts).reduce((a,b)=>a+b,0);
-  if(total === 0) return "g"; // Standard
+  if(total === 0) return "g";
 
-  const sorted = LEVEL_ORDER_UI
+  const sorted = LEVEL_UI
     .map(lk => ({lk, c: counts[lk]}))
     .sort((a,b) => b.c - a.c);
 
   const top = sorted[0];
   const tie = sorted.filter(x => x.c === top.c);
-
   if(tie.length > 1){
-    // Praxisnah: g bevorzugen bei Gleichstand
-    const pref = ["g","vv","ge","u"];
+    const pref = ["g","vv","ge","u"]; // praxisnah
     for(const p of pref){
       if(tie.some(t => t.lk === p)) return p;
     }
@@ -402,10 +404,9 @@ function currentSelections(){
   return out;
 }
 
-/* ===== Text aus angekreuzten Punkten ===== */
 function collectSelectedPoints(item){
   const selected = [];
-  for(const lk of LEVEL_ORDER_UI){
+  for(const lk of LEVEL_UI){
     const pts = item.levels[lk].points;
     const map = state.checks[item.id][lk] || {};
     pts.forEach((p, idx) => { if(map[idx]) selected.push(p); });
@@ -413,21 +414,122 @@ function collectSelectedPoints(item){
   return selected;
 }
 
-function sentenceForItem(item, overallLevel, ctx){
-  const { name } = ctx;
-  const weich = pickWeichmacher(overallLevel);
-  const selected = collectSelectedPoints(item);
+// ===== Professioneller Text (Absätze, kein Titelzitieren) =====
+function buildProfessionalText(ctx, levelsById){
+  const { name, P } = ctx;
 
-  if(selected.length === 0){
-    // wenn nichts angekreuzt: kurzer Standardsatz
-    return `${name} zeigt im Bereich „${item.title}“ ${weich} eine ${mod("gute")} Entwicklung.`;
+  // Helper: hole Item + Level
+  const itemById = {};
+  DATA.forEach(g => g.items.forEach(it => itemById[it.id] = it));
+
+  // Kurzfunktionen
+  const lvl = (id) => levelsById[id] || "g";
+  const pts = (id) => collectSelectedPoints(itemById[id]);
+
+  // Bausteine pro Dimension (ohne “im Bereich …”)
+  function punctuality(){
+    const L = lvl("puenktlich");
+    const list = pts("puenktlich");
+    const hasLate = list.some(x => x.toLowerCase().includes("nach dem läuten"));
+    const hasHA = list.some(x => x.toLowerCase().includes("ha"));
+
+    if(hasLate){
+      return `${name} erscheint ${weich(L)} nicht immer pünktlich und ist zu Unterrichtsbeginn ${qual(L)} startbereit.`;
+    }
+    let s = `${name} ist zu Unterrichtsbeginn ${weich(L)} startbereit und erscheint ${qual(L)} im schulischen Alltag.`;
+    if(hasHA) s += ` Material und Hausaufgaben sind ${weich(L)} vollständig vorhanden.`;
+    return s;
   }
 
-  // Zeugnis-Satz (präzise, aber schnell editierbar)
-  return `${name} zeigt im Bereich „${item.title}“ ${weich} folgendes Verhalten: ${joined(selected)}.`;
+  function participation(){
+    const L = lvl("aktiv");
+    const list = pts("aktiv");
+    const hasQ = list.some(x => x.toLowerCase().includes("fragen"));
+    const hasInit = list.some(x => x.toLowerCase().includes("eigeninitiative"));
+    let s = `${name} beteiligt sich ${weich(L)} aktiv am Unterricht.`;
+    if(hasQ) s += ` ${P.subj.charAt(0).toUpperCase()+P.subj.slice(1)} stellt ${weich(L)} Fragen und bringt eigene Gedanken ein.`;
+    if(hasInit) s += ` Eigeninitiative zeigt ${P.subj} ${weich(L)}.`;
+    return s;
+  }
+
+  function focus(){
+    const L = lvl("konzentriert");
+    const list = pts("konzentriert");
+    const hasDistract = list.some(x => x.toLowerCase().includes("ablenk"));
+    let s = `${name} arbeitet ${weich(L)} konzentriert und bleibt ${qual(L)} an Aufgaben dran.`;
+    if(hasDistract) s += ` In längeren Arbeitsphasen lässt sich ${P.subj} ${weich(L)} ablenken.`;
+    s += ` Aufgaben werden ${weich(L)} abgeschlossen.`;
+    return s;
+  }
+
+  function care(){
+    const L = lvl("sorgfalt");
+    const list = pts("sorgfalt");
+    const matOk = list.some(x => x.toLowerCase().includes("material") && x.toLowerCase().includes("korrekt"));
+    let s = `${name} erledigt Arbeiten ${weich(L)} sorgfältig und ${qual(L)} zuverlässig.`;
+    if(matOk) s += ` Der Umgang mit Material gelingt ${P.subj} ${weich(L)} korrekt.`;
+    return s;
+  }
+
+  function cooperation(){
+    const L = lvl("zusammenarbeit");
+    const list = pts("zusammenarbeit");
+    const help = list.some(x => x.toLowerCase().includes("hilft"));
+    const resp = list.some(x => x.toLowerCase().includes("verantwortung"));
+    let s = `${name} kann ${weich(L)} konstruktiv mit anderen zusammenarbeiten.`;
+    if(help) s += ` ${P.subj.charAt(0).toUpperCase()+P.subj.slice(1)} unterstützt Mitschülerinnen und Mitschüler ${weich(L)}.`;
+    if(resp) s += ` Verantwortung übernimmt ${P.subj} ${weich(L)}.`;
+    return s;
+  }
+
+  function selfReflection(){
+    const L = lvl("selbsteinschaetzung");
+    const list = pts("selbsteinschaetzung");
+    const strengths = list.some(x => x.toLowerCase().includes("stärken"));
+    const weaknesses = list.some(x => x.toLowerCase().includes("schwächen"));
+    const goals = list.some(x => x.toLowerCase().includes("ziele"));
+    let s = `${name} schätzt die eigene Leistungsfähigkeit ${weich(L)} realistisch ein.`;
+    if(strengths || weaknesses){
+      s += ` ${P.subj.charAt(0).toUpperCase()+P.subj.slice(1)} kann Stärken und Entwicklungspunkte ${weich(L)} benennen.`;
+    }
+    if(goals){
+      s += ` Ziele setzt sich ${P.subj} ${weich(L)} passend und erreichbar.`;
+    }
+    return s;
+  }
+
+  function rules(){
+    const L = lvl("regeln");
+    const list = pts("regeln");
+    const chores = list.some(x => x.toLowerCase().includes("ämt"));
+    let s = `${name} hält Regeln des schulischen Zusammenlebens ${weich(L)} ein.`;
+    if(chores) s += ` Aufgaben und Ämtli erledigt ${P.subj} ${weich(L)} zuverlässig.`;
+    return s;
+  }
+
+  function respect(){
+    const L = lvl("respekt");
+    const list = pts("respekt");
+    const lp = list.some(x => x.toLowerCase().includes("lp"));
+    const ms = list.some(x => x.toLowerCase().includes("mitschüler"));
+    let s = `${name} begegnet anderen ${weich(L)} respektvoll.`;
+    if(lp) s += ` Gegenüber der Lehrperson zeigt ${P.subj} ${weich(L)} einen angemessenen Umgang.`;
+    if(ms) s += ` Im Kontakt mit Mitschülerinnen und Mitschülern verhält sich ${P.subj} ${weich(L)} fair und kooperativ.`;
+    return s;
+  }
+
+  // Absätze
+  const p1 = `${punctuality()} ${participation()} ${focus()} ${care()}`;
+  const p2 = `${cooperation()} ${rules()} ${respect()}`;
+  const p3 = `${selfReflection()}`;
+
+  // Intro nur kurz
+  const intro = `${name} zeigt in den überfachlichen Kompetenzen insgesamt ein ${mod("stimmiges")} Bild.`;
+
+  return `${intro}\n\n${p1}\n\n${p2}\n\n${p3}`;
 }
 
-/* ===== Editor ===== */
+// ===== Editor =====
 let editorTouched = false;
 function setEditorHTML(html){ el("reportEditor").innerHTML = html; }
 function getEditorPlainText(){
@@ -439,73 +541,54 @@ function getEditorPlainText(){
 function generateText(){
   const name = el("studentName").value.trim() || "Das Kind";
   const P = pronouns(el("gender").value);
-  const selections = currentSelections();
+  const levels = currentSelections();
+  const text = buildProfessionalText({ name, P }, levels);
 
-  const intro = `${name} wird im Bereich der überfachlichen Kompetenzen wie folgt eingeschätzt:`;
-
-  const arbeits = [];
-  const sozial = [];
-
-  DATA.forEach(group => {
-    group.items.forEach(item => {
-      const lvl = selections[item.id];
-      const s = sentenceForItem(item, lvl, { name, P });
-      if(group.group === "Arbeits- und Lernverhalten") arbeits.push(s);
-      else sozial.push(s);
-    });
-  });
-
-  const html =
-    `${intro}<br><br>` +
-    `<strong>Arbeits- und Lernverhalten:</strong> ${arbeits.join(" ")}<br><br>` +
-    `<strong>Sozialverhalten:</strong> ${sozial.join(" ")}`;
-
+  // In HTML übernehmen, Zeilenumbrüche als <br>
+  const html = text.split("\n").map(line => line === "" ? "<br>" : line).join("<br>");
   setEditorHTML(html);
 }
 
-/* ===== Defaults / Buttons ===== */
+// ===== Defaults / Buttons =====
 function fillDefaults(){
   el("place").value = DEFAULT_PLACE;
   el("date").value = toISODate(new Date());
 }
-
 function resetStandard(){
-  // alles löschen + overall auto
   DATA.forEach(g => g.items.forEach(item => {
     ensureItemState(item);
     state.overall[item.id] = "auto";
-    for(const lk of LEVEL_ORDER_UI){
+    for(const lk of LEVEL_UI){
       state.checks[item.id][lk] = {};
     }
   }));
   editorTouched = false;
-  buildRaster();      // UI neu rendern
+  buildRaster();
   generateText();
 }
-
 function regenerateOverwrite(){
   editorTouched = false;
   generateText();
 }
-
 async function copyPlain(){
   await navigator.clipboard.writeText(getEditorPlainText());
 }
 
-/* ===== PDF Tabellen (Übersicht mit Kreuzchen) ===== */
+// ===== PDF Tabellen =====
 function buildPrintTables(selections){
+  // Header: sehr gut → gut → genügend → nicht genügend
   const headerRight = `
     <div class="zHeaderRight">
-      <div class="rot">${LEVEL_TEXT["u"]}</div>
-      <div class="rot">${LEVEL_TEXT["ge"]}</div>
-      <div class="rot">${LEVEL_TEXT["g"]}</div>
       <div class="rot">${LEVEL_TEXT["vv"]}</div>
+      <div class="rot">${LEVEL_TEXT["g"]}</div>
+      <div class="rot">${LEVEL_TEXT["ge"]}</div>
+      <div class="rot">${LEVEL_TEXT["u"]}</div>
     </div>
   `;
 
   function rowHTML(item){
     const chosen = selections[item.id] || "g";
-    const rightMarks = LEVEL_ORDER_PDF.map(lk => {
+    const rightMarks = LEVEL_PDF.map(lk => {
       const on = (lk === chosen) ? "mark mark--on" : "mark";
       return `<div class="${on}"></div>`;
     }).join("");
@@ -525,7 +608,7 @@ function buildPrintTables(selections){
   el("printTableSozial").innerHTML  = makeTable(DATA[1]);
 }
 
-/* ===== Print füllen ===== */
+// ===== Print füllen =====
 function buildPrint(){
   const studentName = el("studentName").value.trim() || "—";
   const className = el("className").value.trim() || "—";
@@ -542,6 +625,7 @@ function buildPrint(){
   const selections = currentSelections();
   buildPrintTables(selections);
 
+  // PDF: Plaintext (schwarz)
   el("printText").textContent = getEditorPlainText();
 
   const remarks = (el("teacherRemarks").value || "").trim();
@@ -558,9 +642,32 @@ function buildPrint(){
   }
 }
 
-/* ===== PDF Export robust: Klon in DOM → html2canvas → jsPDF ===== */
+// ===== PDF Export FIX (robust) =====
+function getJsPDF(){
+  // html2pdf.bundle kann jsPDF unter window.jspdf.jsPDF bereitstellen
+  if(window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  if(window.jsPDF) return window.jsPDF;
+  return null;
+}
+
+async function waitForLibs(timeoutMs = 2500){
+  const start = performance.now();
+  while(performance.now() - start < timeoutMs){
+    if(window.html2canvas && getJsPDF()) return true;
+    await new Promise(r => setTimeout(r, 50));
+  }
+  return false;
+}
+
 async function exportPDF(){
   buildPrint();
+
+  // Libraries prüfen (häufige Ursache für deinen Screenshot-Fehler)
+  const ok = await waitForLibs();
+  if(!ok){
+    alert("PDF-Fehler: html2canvas/jsPDF nicht geladen. Prüfe Internet/Adblocker/CSP.");
+    return;
+  }
 
   const sourcePage = document.querySelector("#printArea .printPage");
   if(!sourcePage){
@@ -568,6 +675,7 @@ async function exportPDF(){
     return;
   }
 
+  // Clone in sichtbaren DOM setzen (stabil)
   const clone = sourcePage.cloneNode(true);
 
   const staging = document.createElement("div");
@@ -575,40 +683,42 @@ async function exportPDF(){
   staging.style.position = "fixed";
   staging.style.left = "0";
   staging.style.top = "0";
-  staging.style.width = "210mm";
-  staging.style.background = "#ffffff";
   staging.style.zIndex = "999999";
+  staging.style.background = "#fff";
   staging.style.pointerEvents = "none";
   staging.style.opacity = "1";
   staging.style.visibility = "visible";
 
+  // Breite in px (robuster als mm bei manchen Browsern)
+  const rect = sourcePage.getBoundingClientRect();
+  staging.style.width = `${Math.ceil(rect.width)}px`;
+
   staging.appendChild(clone);
   document.body.appendChild(staging);
 
+  // Layout + Fonts abwarten
   await new Promise(r => requestAnimationFrame(r));
-  await new Promise(r => setTimeout(r, 80));
+  await new Promise(r => setTimeout(r, 120));
+  if(document.fonts && document.fonts.ready){
+    try{ await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))]); } catch {}
+  }
 
   try{
     const canvas = await window.html2canvas(clone, {
       backgroundColor: "#ffffff",
       scale: 2,
       useCORS: true,
-      allowTaint: true,
+      allowTaint: false,
       logging: false
     });
 
+    const jsPDF = getJsPDF();
+    if(!jsPDF) throw new Error("jsPDF nicht verfügbar (getJsPDF).");
+
     const imgData = canvas.toDataURL("image/jpeg", 0.98);
-
-    const jsPDF =
-      (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF :
-      window.jsPDF ? window.jsPDF : null;
-
-    if(!jsPDF) throw new Error("jsPDF nicht verfügbar.");
-
     const pdf = new jsPDF("p", "mm", "a4");
-    const pageW = 210;
-    const pageH = 297;
 
+    const pageW = 210, pageH = 297;
     const imgW = pageW;
     const imgH = (canvas.height * imgW) / canvas.width;
 
@@ -616,7 +726,6 @@ async function exportPDF(){
     let remaining = imgH;
 
     pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
-
     remaining -= pageH;
     y -= pageH;
 
@@ -633,15 +742,15 @@ async function exportPDF(){
     pdf.save(filename);
 
   } catch(err){
-    console.error(err);
-    alert("PDF-Fehler. Bitte Konsole öffnen (F12) und Fehlermeldung prüfen.");
+    console.error("PDF-Export-Fehler:", err);
+    alert(`PDF-Fehler: ${err?.message ? err.message : String(err)}\n\nTipp: Konsole (F12) öffnen → Fehler unter 'Console' anschauen.`);
   } finally {
     const s = document.getElementById("pdf-staging");
     if(s) document.body.removeChild(s);
   }
 }
 
-/* ===== Diktat ===== */
+// ===== Diktat =====
 function makeDictationEditable(buttonEl, targetEl){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){
@@ -745,7 +854,7 @@ function makeDictationTextarea(buttonEl, textarea){
   buttonEl.addEventListener("click", () => running ? stop() : start());
 }
 
-/* ===== Init ===== */
+// ===== Init =====
 buildRaster();
 fillDefaults();
 generateText();
@@ -757,6 +866,7 @@ el("btnCopy").addEventListener("click", copyPlain);
 
 el("reportEditor").addEventListener("input", () => { editorTouched = true; });
 
+// Auto-Text: Name/Geschlecht beeinflusst Formulierungen
 ["studentName","gender"].forEach(id => {
   el(id).addEventListener("input", () => { if(!editorTouched) generateText(); });
 });
