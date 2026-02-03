@@ -6,7 +6,7 @@
   <title>Überfachliche Kompetenzen</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- PDF Export (Client-side) -->
+  <!-- PDF Export (client-side) -->
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.3/dist/html2pdf.bundle.min.js"></script>
 </head>
 
@@ -15,15 +15,15 @@
     <div class="topbar__inner">
       <div class="brand">
         <div class="brand__title">Überfachliche Kompetenzen</div>
-        <div class="brand__subtitle">Beurteilungsraster → Text → PDF</div>
+        <div class="brand__subtitle">Raster → Auswertungstext → PDF</div>
       </div>
 
       <div class="actions">
-        <button id="btnFillStandard" class="btn btn--ghost" type="button" title="Alles auf Gut (Standard) setzen">
-          Standard setzen
+        <button id="btnReset" class="btn btn--ghost" type="button" title="Raster auf Standard (Gut) setzen">
+          Standard
         </button>
-        <button id="btnGenerate" class="btn" type="button">
-          Text aktualisieren
+        <button id="btnRegen" class="btn" type="button" title="Text neu aus Raster erzeugen (überschreibt Editor)">
+          Text neu erzeugen
         </button>
         <button id="btnPdf" class="btn btn--primary" type="button">
           PDF erstellen
@@ -33,8 +33,9 @@
   </header>
 
   <main class="container">
+
     <section class="card">
-      <h2>Angaben</h2>
+      <h2>Formularkopf</h2>
 
       <div class="grid grid--4">
         <label class="field">
@@ -72,15 +73,14 @@
       </div>
 
       <p class="hint">
-        Tipp: Rechtschreibprüfung ist aktiv (Browserfunktion). In vielen Browsern kannst du im Textfeld rechtsklicken → „Rechtschreibung“.
+        Rechtschreibprüfung: Im Editor aktiv (Browser). Farbig markierte Wörter sind „Feinjustier-Wörter“.
       </p>
     </section>
 
     <section class="card">
-      <h2>Raster</h2>
+      <h2>Beurteilungsraster</h2>
       <p class="muted">
-        Auswahl pro Kriterium: <strong>sehr gut ++</strong>, <strong>Gut + (Standard)</strong>, <strong>Genügend -</strong>, <strong>Ungenügend --</strong>.
-        (Wortlaut gemäss Vorlage.) :contentReference[oaicite:1]{index=1}
+        Pro Kriterium eine Stufe auswählen: <strong>sehr gut ++</strong>, <strong>Gut +</strong>, <strong>Genügend -</strong>, <strong>Ungenügend --</strong>.
       </p>
 
       <div id="rasterRoot" class="raster"></div>
@@ -88,29 +88,27 @@
 
     <section class="card">
       <div class="row row--between row--center">
-        <h2>Auswertungstext (editierbar)</h2>
+        <h2>Auswertungstext</h2>
         <div class="row row--gap">
           <button id="btnDictateText" class="btn btn--ghost" type="button" title="Diktat starten/stoppen (Browser)">
-            🎤 Diktat: Text
+            🎤 Diktat
           </button>
-          <button id="btnCopy" class="btn btn--ghost" type="button" title="Text kopieren">
+          <button id="btnCopy" class="btn btn--ghost" type="button" title="Text kopieren (ohne Farben)">
             Kopieren
           </button>
         </div>
       </div>
 
-      <textarea
-        id="reportText"
-        class="textarea"
-        rows="10"
-        spellcheck="true"
-        placeholder="Hier erscheint der automatisch erzeugte Text. Du kannst ihn direkt anpassen."
-      ></textarea>
+      <div class="muted small">
+        Tipp: Du kannst die markierten Wörter direkt ersetzen (z. B. „meist“ → „oft“).
+      </div>
+
+      <div id="reportEditor" class="editor" contenteditable="true" spellcheck="true"></div>
 
       <div class="row row--between row--center mt">
         <h3 class="h3">Bemerkungen Lehrperson (optional)</h3>
         <button id="btnDictateRemarks" class="btn btn--ghost" type="button" title="Diktat starten/stoppen (Browser)">
-          🎤 Diktat: Bemerkungen
+          🎤 Diktat
         </button>
       </div>
 
@@ -119,70 +117,71 @@
         class="textarea"
         rows="4"
         spellcheck="true"
-        placeholder="Bemerkungen der Lehrperson (werden in der PDF übernommen)."
+        placeholder="Bemerkungen der Lehrperson (optional)."
       ></textarea>
     </section>
 
-    <!-- PRINT / PDF TEMPLATE (hidden on screen) -->
-    <section id="printArea" class="print print--hidden" aria-hidden="true">
-      <div class="print__page">
-        <div class="print__header">
-          <div>
-            <div class="print__title">Überfachliche Kompetenzen</div>
-            <div class="print__meta" id="printMeta"></div>
-          </div>
+    <!-- PRINT/PDF AREA -->
+    <section id="printArea" class="printArea printArea--offscreen" aria-hidden="true">
+      <div class="printPage">
+        <div class="printHeader">
+          <div class="printTitle">Überfachliche Kompetenzen</div>
+          <div id="printHead" class="printMeta"></div>
         </div>
 
-        <div class="print__block">
-          <div class="print__label">Auswertung</div>
-          <div id="printText" class="print__text"></div>
+        <div class="printBlock">
+          <div class="printLabel">Auswertung</div>
+          <div id="printText" class="printText"></div>
         </div>
 
-        <div class="print__block">
-          <div class="print__label">Bemerkungen Lehrperson</div>
-          <div id="printTeacherRemarks" class="print__lines"></div>
+        <div class="printBlock">
+          <div class="printLabel">Bemerkungen Lehrperson</div>
+          <div id="printTeacherRemarks" class="printLines"></div>
         </div>
 
-        <div class="print__block">
-          <div class="print__label">Bemerkungen Eltern</div>
-          <div class="print__lines">
+        <div class="printBlock">
+          <div class="printLabel">Bemerkungen Eltern</div>
+          <div class="printLines">
             <div class="line"></div>
             <div class="line"></div>
             <div class="line"></div>
           </div>
         </div>
 
-        <div class="print__block">
-          <div class="print__label print__label--box">Unterschriften</div>
+        <div class="printBlock">
+          <div class="printLabelBox">Unterschriften</div>
 
-          <div class="sig">
-            <div class="sig__row sig__row--dates">
+          <div class="sigBox">
+            <div class="sigRow sigRow--top">
               <div><strong>Datum:</strong></div>
               <div><strong>Datum:</strong></div>
             </div>
 
-            <div class="sig__row sig__row--grid">
-              <div class="sig__cell">
-                <div class="sig__cap">Kind</div>
-                <div class="sig__box"></div>
+            <div class="sigRow sigRow--grid">
+              <div class="sigCell">
+                <div class="sigCap">Kind</div>
+                <div class="sigLine"></div>
               </div>
-              <div class="sig__cell">
-                <div class="sig__cap">Lehrperson</div>
-                <div class="sig__box"></div>
+
+              <div class="sigCell">
+                <div id="sigTeacherCap" class="sigCap">Lehrperson</div>
+                <div class="sigLine"></div>
               </div>
-              <div class="sig__cell">
-                <div class="sig__cap">Eltern</div>
-                <div class="sig__box"></div>
+
+              <div class="sigCell">
+                <div class="sigCap">Visum Eltern</div>
+                <div class="sigLine"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="print__footer">
+        <div class="printFooter">
           <div>PS Wädenswil, Schule Untermosen, 2.–4. Klasse</div>
         </div>
       </div>
     </section>
+
   </main>
 
   <script src="app.js"></script>
