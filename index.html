@@ -6,7 +6,7 @@
   <title>Überfachliche Kompetenzen</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- lokal (damit Schulnetz funktioniert) -->
+  <!-- lokal (zu Hause laden, dann ins Repo /vendor hochladen) -->
   <script defer src="vendor/html2canvas.min.js"></script>
   <script defer src="vendor/jspdf.umd.min.js"></script>
 </head>
@@ -67,16 +67,15 @@
       </div>
 
       <p class="hint">
-        Farbig markierte Wörter im Text sind „Feinjustier-Wörter“ und lassen sich schnell ersetzen.
-        In der PDF ist alles schwarz.
+        Farbig markierte Wörter im Text sind „Feinjustier-Wörter“. In der PDF ist alles schwarz.
       </p>
     </section>
 
     <section class="card">
       <h2>Beurteilungsraster</h2>
       <p class="muted">
-        Kreuze Beobachtungen an. Die <strong>Gesamtstufe</strong> wird automatisch aus den Kreuzen berechnet und kann bei Bedarf
-        manuell im Dropdown angepasst werden.
+        Kreuze Beobachtungen an. Die <strong>Gesamtstufe</strong> wird automatisch berechnet und kann manuell überschrieben werden.
+        Widersprüchliche Aussagen innerhalb eines Kriteriums werden automatisch verhindert.
       </p>
       <div id="rasterRoot" class="raster"></div>
     </section>
@@ -106,9 +105,11 @@
         placeholder="Bemerkungen der Lehrperson (optional)."></textarea>
     </section>
 
-    <!-- PRINT/PDF -->
+    <!-- PRINT/PDF (immer 2 Seiten) -->
     <section id="printArea" class="printArea printArea--offscreen" aria-hidden="true">
-      <div class="printPage">
+
+      <!-- Seite 1 -->
+      <div class="printPage" data-page="1">
         <div class="printHeader">
           <div class="printTitle">Überfachliche Kompetenzen</div>
           <div id="printHead" class="printMeta"></div>
@@ -128,18 +129,31 @@
 
         <div class="printBlock">
           <div class="printLabel">Auswertung (Text)</div>
-          <div id="printText" class="printText"></div>
+          <div id="printText" class="printText printText--clamp"></div>
         </div>
 
         <div class="printBlock">
           <div class="printLabel">Bemerkungen Lehrperson</div>
-          <div id="printTeacherRemarks" class="printLines"></div>
+          <div id="printTeacherRemarks" class="printLines printLines--teacher"></div>
+        </div>
+
+        <div class="printFooter">
+          <div>PS Wädenswil, Schule Untermosen</div>
+        </div>
+      </div>
+
+      <!-- Seite 2 -->
+      <div class="printPage" data-page="2">
+        <div class="printHeader">
+          <div class="printTitle">Überfachliche Kompetenzen</div>
+          <div id="printHead2" class="printMeta"></div>
         </div>
 
         <div class="printBlock">
           <div class="printLabel">Bemerkungen Eltern</div>
           <div class="printLines">
             <div class="line"></div><div class="line"></div><div class="line"></div>
+            <div class="line"></div><div class="line"></div>
           </div>
         </div>
 
@@ -175,6 +189,7 @@
           <div>PS Wädenswil, Schule Untermosen</div>
         </div>
       </div>
+
     </section>
 
   </main>
