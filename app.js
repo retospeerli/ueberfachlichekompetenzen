@@ -1,12 +1,65 @@
-const DEFAULT_PLACE = "Wädenswil";
-const LEVELS = ["vv","g","ge","u"]; // sehr gut → nicht genügend
-const LEVEL_LABEL = { vv:"++", g:"+", ge:"-", u:"--" };
-const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" };
+/* app.js – Überfachliche Kompetenzen (copy/paste)
+   - Raster (exklusiv via ex), Auto-Gesamtstufe + Override
+   - Textgenerator (warm 2–4 / sachlicher 5–6)
+   - Copilot: 3 Buttons (kopieren / öffnen / glätten)
+   - Overlay-Hilfe: NUR Hover >3s über Copilot-Button, schliessbar (X, Background, ESC)
+   - PDF: 2 Seiten; robust (html2canvas/jsPDF oder Print-Fallback)
+*/
 
-// Punkt-Format: {t:"Text", ex:"gruppe"}
+const DEFAULT_PLACE = "Wädenswil";
+const LEVELS = ["vv", "g", "ge", "u"]; // sehr gut → nicht genügend
+const LEVEL_LABEL = { vv: "++", g: "+", ge: "-", u: "--" };
+const LEVEL_TEXT  = { vv: "sehr gut", g: "gut", ge: "genügend", u: "nicht genügend" };
+
+function el(id){ return document.getElementById(id); }
+function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function mod(w){ return `<span class="mod">${w}</span>`; }
+
+function toISODate(d){
+  const pad = (n)=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function formatDateCH(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}
+function pronouns(g){
+  return (g==="w")
+    ? {subj:"sie",obj:"sie",poss:"ihr",dat:"ihr"}
+    : {subj:"er",obj:"ihn",poss:"sein",dat:"ihm"};
+}
+function getCycle(className){
+  const m = (className||"").match(/\d+/);
+  if(!m) return "low";
+  const k = parseInt(m[0], 10);
+  return (k <= 4) ? "low" : "high";
+}
+function weich(level){
+  if(level==="vv") return mod("durchwegs");
+  if(level==="g")  return mod("meist");
+  if(level==="ge") return mod("teilweise");
+  return mod("selten");
+}
+function sicher(level){
+  if(level==="vv") return mod("sehr sicher");
+  if(level==="g")  return mod("sicher");
+  if(level==="ge") return mod("noch nicht durchgehend sicher");
+  return mod("mit Unterstützung");
+}
+function kritisch(level){
+  if(level==="vv" || level==="g") return "";
+  if(level==="ge") return ` ${mod("Dabei braucht")} ${mod("es noch")} gelegentlich eine Erinnerung oder Strukturierung.`;
+  return ` ${mod("Hier braucht")} ${mod("es deutlich")} mehr Begleitung, damit Ziele zuverlässig erreicht werden.`;
+}
+
+/* Punkt-Format: {t:"Text", ex:"gruppe"} */
 function pointText(p){ return p.t || ""; }
 function pointEx(p){ return p.ex || null; }
 
+/* ===== DATA (2.–4. Klasse) – strukturiert nach Vorlage =====
+   (Auszug der Kriterien, die du aktuell in der App nutzt; kann jederzeit erweitert werden)
+*/
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
@@ -206,49 +259,9 @@ const DATA = [
   }
 ];
 
-const el = (id)=>document.getElementById(id);
-
-function toISODate(d){
-  const pad=(n)=>String(n).padStart(2,"0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-function formatDateCH(iso){
-  if(!iso) return "";
-  const [y,m,d]=iso.split("-");
-  return `${d}.${m}.${y}`;
-}
-function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
-function pronouns(g){
-  return (g==="w") ? {subj:"sie",obj:"sie",poss:"ihr",dat:"ihr"} : {subj:"er",obj:"ihn",poss:"sein",dat:"ihm"};
-}
-function getCycle(className){
-  const m=(className||"").match(/\d+/);
-  if(!m) return "low";
-  const k=parseInt(m[0],10);
-  return (k<=4) ? "low" : "high";
-}
-function mod(w){ return `<span class="mod">${w}</span>`; }
-
-function weich(level){
-  if(level==="vv") return mod("durchwegs");
-  if(level==="g")  return mod("meist");
-  if(level==="ge") return mod("teilweise");
-  return mod("selten");
-}
-function sicher(level){
-  if(level==="vv") return mod("sehr sicher");
-  if(level==="g")  return mod("sicher");
-  if(level==="ge") return mod("noch nicht durchgehend sicher");
-  return mod("mit Unterstützung");
-}
-function kritisch(level){
-  if(level==="vv" || level==="g") return "";
-  if(level==="ge") return ` ${mod("Dabei braucht")} ${mod("es noch")} gelegentlich eine Erinnerung oder Strukturierung.`;
-  return ` ${mod("Hier braucht")} ${mod("es deutlich")} mehr Begleitung, damit Ziele zuverlässig erreicht werden.`;
-}
-
+// ===== State =====
 const state = { checks:{}, overall:{} };
-let editorTouched=false;
+let editorTouched = false;
 
 function ensureItemState(item){
   if(!state.checks[item.id]) state.checks[item.id] = {};
@@ -260,7 +273,7 @@ function ensureItemState(item){
 
 function computeOverallLevel(item){
   const forced = state.overall[item.id];
-  if(forced && forced!=="auto") return forced;
+  if(forced && forced !== "auto") return forced;
 
   const counts = {};
   for(const lk of LEVELS){
@@ -268,45 +281,47 @@ function computeOverallLevel(item){
     counts[lk] = Object.values(m).filter(Boolean).length;
   }
   const total = Object.values(counts).reduce((a,b)=>a+b,0);
-  if(total===0) return "g";
+  if(total === 0) return "g";
 
   const sorted = LEVELS.map(lk=>({lk,c:counts[lk]})).sort((a,b)=>b.c-a.c);
   const top = sorted[0];
   const tie = sorted.filter(x=>x.c===top.c);
   if(tie.length>1){
-    const pref=["g","vv","ge","u"];
+    const pref = ["g","vv","ge","u"];
     for(const p of pref) if(tie.some(t=>t.lk===p)) return p;
   }
   return top.lk;
 }
+
 function currentSelections(){
-  const out={};
-  DATA.forEach(g=>g.items.forEach(it=>out[it.id]=computeOverallLevel(it)));
+  const out = {};
+  DATA.forEach(g=>g.items.forEach(it => out[it.id] = computeOverallLevel(it)));
   return out;
 }
 
+// ===== Raster UI =====
 function buildRaster(){
   const root = el("rasterRoot");
   root.innerHTML = "";
 
   DATA.forEach(group=>{
-    const wrap=document.createElement("div");
-    wrap.className="group";
+    const wrap = document.createElement("div");
+    wrap.className = "group";
 
-    const head=document.createElement("div");
-    head.className="group__title";
-    head.innerHTML=`<div>${group.group}</div><div class="muted">${group.items.length} Kriterien</div>`;
+    const head = document.createElement("div");
+    head.className = "group__title";
+    head.innerHTML = `<div>${group.group}</div><div class="muted">${group.items.length} Kriterien</div>`;
     wrap.appendChild(head);
 
     group.items.forEach(item=>{
       ensureItemState(item);
 
-      const block=document.createElement("div");
-      block.className="detailItem";
+      const block = document.createElement("div");
+      block.className = "detailItem";
 
-      const top=document.createElement("div");
-      top.className="detailTop";
-      top.innerHTML=`
+      const top = document.createElement("div");
+      top.className = "detailTop";
+      top.innerHTML = `
         <div class="detailTitle">${item.title}</div>
         <div class="overall">
           <span class="overall__label">Gesamtstufe:</span>
@@ -321,36 +336,36 @@ function buildRaster(){
       `;
       block.appendChild(top);
 
-      const autoLine=document.createElement("div");
-      autoLine.className="muted small";
-      autoLine.style.marginTop="6px";
-      autoLine.innerHTML=`Auto-Berechnung: <strong data-autolabel="${item.id}"></strong>`;
+      const autoLine = document.createElement("div");
+      autoLine.className = "muted small";
+      autoLine.style.marginTop = "6px";
+      autoLine.innerHTML = `Auto-Berechnung: <strong data-autolabel="${item.id}"></strong>`;
       block.appendChild(autoLine);
 
-      const grid=document.createElement("div");
-      grid.className="levelGrid";
+      const grid = document.createElement("div");
+      grid.className = "levelGrid";
 
       LEVELS.forEach(lk=>{
-        const col=document.createElement("div");
-        col.className=`levelCol levelCol--${item.levels[lk].color}`;
+        const col = document.createElement("div");
+        col.className = `levelCol levelCol--${item.levels[lk].color}`;
 
-        const capBox=document.createElement("div");
-        capBox.className="levelCap";
-        capBox.innerHTML=`
+        const capBox = document.createElement("div");
+        capBox.className = "levelCap";
+        capBox.innerHTML = `
           <div class="levelCap__short">${LEVEL_LABEL[lk]}</div>
           <div class="levelCap__long">${LEVEL_TEXT[lk]}</div>
         `;
         col.appendChild(capBox);
 
-        const list=document.createElement("div");
-        list.className="pointList";
+        const list = document.createElement("div");
+        list.className = "pointList";
 
         item.levels[lk].points.forEach((p, idx)=>{
-          const checked=!!state.checks[item.id][lk][idx];
-          const lab=document.createElement("label");
-          lab.className="point";
-          lab.innerHTML=`
-            <input type="checkbox" ${checked?"checked":""}
+          const checked = !!state.checks[item.id][lk][idx];
+          const lab = document.createElement("label");
+          lab.className = "point";
+          lab.innerHTML = `
+            <input type="checkbox" ${checked ? "checked" : ""}
               data-item="${item.id}" data-level="${lk}" data-idx="${idx}"
               data-ex="${pointEx(p)}">
             <span>${pointText(p)}</span>
@@ -369,27 +384,28 @@ function buildRaster(){
     root.appendChild(wrap);
   });
 
-  // Exklusivlogik: gleicher ex im selben Item => nur ein Häkchen (über alle Levels)
+  // Checkbox Events + Exklusivlogik (pro Item + ex)
   root.querySelectorAll('input[type="checkbox"][data-item]').forEach(cb=>{
     cb.addEventListener("change",(e)=>{
-      const t=e.target;
-      const itemId=t.dataset.item;
-      const lk=t.dataset.level;
-      const idx=Number(t.dataset.idx);
-      const ex=t.dataset.ex || null;
+      const t = e.target;
+      const itemId = t.dataset.item;
+      const lk = t.dataset.level;
+      const idx = Number(t.dataset.idx);
+      const ex = t.dataset.ex || null;
 
       state.checks[itemId][lk][idx] = t.checked;
 
+      // Exklusiv: gleicher ex innerhalb des Items – nur ein Häkchen erlaubt (über alle Levels)
       if(t.checked && ex){
         const item = DATA.flatMap(g=>g.items).find(it=>it.id===itemId);
         if(item){
           LEVELS.forEach(otherLk=>{
             item.levels[otherLk].points.forEach((p, otherIdx)=>{
               if(pointEx(p)===ex && !(otherLk===lk && otherIdx===idx)){
-                state.checks[itemId][otherLk][otherIdx]=false;
-                const sel=`input[data-item="${itemId}"][data-level="${otherLk}"][data-idx="${otherIdx}"]`;
-                const box=root.querySelector(sel);
-                if(box) box.checked=false;
+                state.checks[itemId][otherLk][otherIdx] = false;
+                const sel = `input[data-item="${itemId}"][data-level="${otherLk}"][data-idx="${otherIdx}"]`;
+                const box = root.querySelector(sel);
+                if(box) box.checked = false;
               }
             });
           });
@@ -401,10 +417,11 @@ function buildRaster(){
     });
   });
 
+  // Override Events
   root.querySelectorAll('select[data-overall]').forEach(sel=>{
     sel.value = state.overall[sel.dataset.overall] || "auto";
     sel.addEventListener("change",(e)=>{
-      state.overall[e.target.dataset.overall]=e.target.value;
+      state.overall[e.target.dataset.overall] = e.target.value;
       refreshAutoLabels();
       if(!editorTouched) generateText();
     });
@@ -415,25 +432,26 @@ function buildRaster(){
 
 function refreshAutoLabels(){
   DATA.flatMap(g=>g.items).forEach(item=>{
-    const backup=state.overall[item.id];
-    state.overall[item.id]="auto";
-    const auto=computeOverallLevel(item);
-    state.overall[item.id]=backup;
+    const backup = state.overall[item.id];
+    state.overall[item.id] = "auto";
+    const auto = computeOverallLevel(item);
+    state.overall[item.id] = backup;
 
-    const node=document.querySelector(`[data-autolabel="${item.id}"]`);
-    if(node) node.textContent=`${LEVEL_LABEL[auto]} (${LEVEL_TEXT[auto]})`;
+    const node = document.querySelector(`[data-autolabel="${item.id}"]`);
+    if(node) node.textContent = `${LEVEL_LABEL[auto]} (${LEVEL_TEXT[auto]})`;
   });
 }
 
+// ===== Textgenerator =====
 function buildProfessionalText(ctx, levels){
   const { name, P, cycle } = ctx;
-  const L=(id)=>levels[id] || "g";
+  const L = (id)=>levels[id] || "g";
 
   const intro = (cycle==="low")
     ? `${name} zeigt in den überfachlichen Kompetenzen insgesamt ein ${mod("stimmiges")} Bild. Die folgenden Beobachtungen beschreiben, wie ${P.subj} den Schulalltag bewältigt.`
     : `${name} zeigt in den überfachlichen Kompetenzen insgesamt ein ${mod("differenziertes")} Profil. Die folgenden Ausführungen geben Auskunft über das Arbeits-, Lern- und Sozialverhalten im Schulalltag.`;
 
-  const text = `
+  return `
 ${intro}
 
 ${cap(P.subj)} erscheint zu Unterrichtsbeginn ${weich(L("puenktlich"))} startbereit und organisiert. Material und Hausaufgaben sind ${weich(L("puenktlich"))} vollständig vorhanden.${kritisch(L("puenktlich"))}
@@ -452,15 +470,13 @@ Im Umgang mit anderen begegnet ${name} seinen Mitmenschen ${weich(L("respekt"))}
 
 ${name} schätzt die eigene Leistungsfähigkeit ${weich(L("selbsteinschaetzung"))} realistisch ein und kann Ziele ${sicher(L("selbsteinschaetzung"))} formulieren.${kritisch(L("selbsteinschaetzung"))}
 `.trim();
-
-  return text;
 }
 
 function setEditorHTML(html){ el("reportEditor").innerHTML = html; }
 function getEditorPlainText(){
-  const tmp=document.createElement("div");
+  const tmp = document.createElement("div");
   tmp.innerHTML = el("reportEditor").innerHTML;
-  return (tmp.innerText||"").trim();
+  return (tmp.innerText || "").trim();
 }
 function generateText(){
   const name = el("studentName").value.trim() || "Das Kind";
@@ -468,13 +484,13 @@ function generateText(){
   const cycle = getCycle(el("className").value);
   const levels = currentSelections();
   const text = buildProfessionalText({name,P,cycle}, levels);
-  setEditorHTML(text.split("\n").map(l=>l===""?"<br>":l).join("<br>"));
+  setEditorHTML(text.split("\n").map(l => l==="" ? "<br>" : l).join("<br>"));
 }
 
-/* ===== Copilot (A+B+C) ===== */
+// ===== Copilot prompt =====
 function buildAiPrompt(text, remarks){
-  const cycle=getCycle(el("className").value);
-  const tone=(cycle==="low") ? "wärmer, ermutigend, kindzentriert" : "sachlich, arbeitszeugnisnah, professionell";
+  const cycle = getCycle(el("className").value);
+  const tone = (cycle==="low") ? "wärmer, ermutigend, kindzentriert" : "sachlich, arbeitszeugnisnah, professionell";
 
   return `
 Du bist eine Lehrperson und formulierst einen Beurteilungstext im Stil eines professionellen Arbeitszeugnisses (Schweiz).
@@ -503,19 +519,87 @@ ${(remarks && remarks.trim()) ? remarks.trim() : "(kein zusätzlicher Kommentar)
 `.trim();
 }
 
-function showOverlay(){ el("aiOverlay").hidden=false; }
-function hideOverlay(){ el("aiOverlay").hidden=true; }
+// ===== Overlay: nur Hover >3s über Copilot-Button =====
+let copilotHoverTimer = null;
 
-async function copyPromptAndText(){
+function showOverlay(){ el("aiOverlay").hidden = false; }
+function hideOverlay(){ el("aiOverlay").hidden = true; }
+
+function setupOverlay(){
+  // X
+  el("btnOverlayClose").addEventListener("click", hideOverlay);
+  // Background click
+  el("aiOverlay").addEventListener("click", (e)=>{
+    if(e.target === el("aiOverlay")) hideOverlay();
+  });
+  // ESC
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape" && !el("aiOverlay").hidden) hideOverlay();
+  });
+
+  // Hover trigger on Copilot button
+  const btn = el("btnAiOpen");
+  btn.addEventListener("mouseenter", ()=>{
+    clearTimeout(copilotHoverTimer);
+    copilotHoverTimer = setTimeout(()=> showOverlay(), 3000);
+  });
+  btn.addEventListener("mouseleave", ()=>{
+    clearTimeout(copilotHoverTimer);
+    copilotHoverTimer = null;
+  });
+
+  // Optional: Touch long press opens overlay
+  let pressTimer = null;
+  btn.addEventListener("touchstart", ()=>{
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(()=> showOverlay(), 600);
+  }, {passive:true});
+  btn.addEventListener("touchend", ()=>{
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }, {passive:true});
+
+  // Overlay actions
+  el("btnOverlayCopyAgain").addEventListener("click", async ()=>{
+    try{
+      await copyPromptOnly();
+      alert("Prompt + Text wurden nochmals kopiert.");
+    }catch(err){
+      console.error(err);
+      alert("Kopieren nicht möglich (Zwischenablage-Berechtigung).");
+    }
+  });
+  el("btnOverlayOpenCopilot").addEventListener("click", ()=> window.open("https://copilot.microsoft.com","_blank"));
+}
+
+// ===== KI Buttons (A+B+C) =====
+async function copyPromptOnly(){
   const prompt = buildAiPrompt(getEditorPlainText(), el("teacherRemarks").value || "");
   await navigator.clipboard.writeText(prompt);
-  showOverlay();
 }
-function openCopilot(){
-  copyPromptAndText().then(()=> window.open("https://copilot.microsoft.com","_blank"));
+
+async function handleAiCopyClick(){
+  try{
+    await copyPromptOnly();
+    alert("Prompt + Text wurden kopiert. Jetzt in Copilot einfügen (Ctrl+V).");
+  }catch(err){
+    console.error(err);
+    alert("Kopieren nicht möglich. Prüfe Browser-Berechtigungen für Zwischenablage.");
+  }
 }
+
+async function openCopilot(){
+  try{
+    await copyPromptOnly();
+  }catch(err){
+    console.error(err);
+    // trotzdem öffnen
+  }
+  window.open("https://copilot.microsoft.com", "_blank");
+}
+
 function localCleanTextAndRemarks(){
-  const replacePairs = [
+  const pairs = [
     [/\s+\n/g, "\n"],
     [/\n{3,}/g, "\n\n"],
     [/\s{2,}/g, " "],
@@ -529,16 +613,16 @@ function localCleanTextAndRemarks(){
   ];
 
   let txt = (el("reportEditor").innerText || "");
-  replacePairs.forEach(([a,b])=> txt = txt.replace(a,b));
-  setEditorHTML(txt.split("\n").map(l=>l===""?"<br>":l).join("<br>"));
-  editorTouched=true;
+  pairs.forEach(([a,b]) => { txt = txt.replace(a,b); });
+  setEditorHTML(txt.split("\n").map(l => l==="" ? "<br>" : l).join("<br>"));
+  editorTouched = true;
 
   let rem = (el("teacherRemarks").value || "");
-  replacePairs.forEach(([a,b])=> rem = rem.replace(a,b));
+  pairs.forEach(([a,b]) => { rem = rem.replace(a,b); });
   el("teacherRemarks").value = rem;
 }
 
-/* ===== PDF ===== */
+// ===== Print/PDF =====
 function buildPrintTables(selections){
   const headerRight = `
     <div class="zHeaderRight">
@@ -565,7 +649,7 @@ function buildPrintTables(selections){
 function collectSelectedPoints(item){
   const out = { vv:[], g:[], ge:[], u:[] };
   LEVELS.forEach(lk=>{
-    const m=state.checks[item.id][lk]||{};
+    const m = state.checks[item.id][lk] || {};
     item.levels[lk].points.forEach((p, idx)=>{
       if(m[idx]) out[lk].push(pointText(p));
     });
@@ -578,10 +662,10 @@ function buildPrintDetails(selections){
   const wrap = el("printDetailsWrap");
   const box  = el("printDetails");
 
-  if(!include){ wrap.hidden=true; box.innerHTML=""; return; }
-  wrap.hidden=false;
+  if(!include){ wrap.hidden = true; box.innerHTML = ""; return; }
+  wrap.hidden = false;
 
-  const parts=[];
+  const parts = [];
   DATA.forEach(group=>{
     group.items.forEach(item=>{
       const chosen = selections[item.id] || "g";
@@ -621,7 +705,8 @@ function buildPrint(){
   el("printHead").textContent = head;
   el("printHead2").textContent = head;
 
-  el("sigTeacherCap").textContent = (teacherName && teacherName!=="—") ? `Lehrperson: ${teacherName}` : "Lehrperson";
+  el("sigTeacherCap").textContent =
+    (teacherName && teacherName !== "—") ? `Lehrperson: ${teacherName}` : "Lehrperson";
 
   const selections = currentSelections();
   buildPrintTables(selections);
@@ -637,14 +722,14 @@ function buildPrint(){
 
   el("printText").textContent = getEditorPlainText();
 
-  const remarks=(el("teacherRemarks").value||"").trim();
+  const remarks = (el("teacherRemarks").value || "").trim();
   if(remarks){
     r.innerHTML = "";
-    const p=document.createElement("div");
-    p.style.whiteSpace="pre-wrap";
-    p.style.marginBottom="3mm";
-    p.style.fontSize="10.2pt";
-    p.textContent=remarks;
+    const p = document.createElement("div");
+    p.style.whiteSpace = "pre-wrap";
+    p.style.marginBottom = "3mm";
+    p.style.fontSize = "10.2pt";
+    p.textContent = remarks;
     r.appendChild(p);
     r.insertAdjacentHTML("beforeend", `<div class="line"></div>`);
   } else {
@@ -665,26 +750,26 @@ function canUseRealPdf(){
 
 async function renderPageToCanvas(pageEl){
   const clone = pageEl.cloneNode(true);
-  const staging=document.createElement("div");
-  staging.style.position="fixed";
-  staging.style.left="0";
-  staging.style.top="0";
-  staging.style.zIndex="999999";
-  staging.style.background="#fff";
-  staging.style.pointerEvents="none";
+  const staging = document.createElement("div");
+  staging.style.position = "fixed";
+  staging.style.left = "0";
+  staging.style.top = "0";
+  staging.style.zIndex = "999999";
+  staging.style.background = "#fff";
+  staging.style.pointerEvents = "none";
   staging.appendChild(clone);
   document.body.appendChild(staging);
 
-  await new Promise(r=>requestAnimationFrame(r));
-  await new Promise(r=>setTimeout(r,140));
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => setTimeout(r, 140));
 
   try{
-    return await window.html2canvas(clone,{
-      backgroundColor:"#ffffff",
-      scale:2,
-      useCORS:true,
-      allowTaint:false,
-      logging:false
+    return await window.html2canvas(clone, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      logging: false
     });
   } finally {
     document.body.removeChild(staging);
@@ -693,36 +778,36 @@ async function renderPageToCanvas(pageEl){
 
 async function exportRealPDF(){
   buildPrint();
-  const jsPDF=getJsPDF();
+  const jsPDF = getJsPDF();
   if(!jsPDF) throw new Error("jsPDF nicht verfügbar.");
 
-  const pages=Array.from(document.querySelectorAll("#printArea .printPage"));
-  if(pages.length!==2) throw new Error("Printbereich muss genau 2 Seiten enthalten.");
+  const pages = Array.from(document.querySelectorAll("#printArea .printPage"));
+  if(pages.length !== 2) throw new Error("Printbereich muss genau 2 Seiten enthalten.");
 
-  const pdf=new jsPDF("p","mm","a4");
-  const pageW=210;
+  const pdf = new jsPDF("p","mm","a4");
+  const pageW = 210;
 
   for(let i=0;i<pages.length;i++){
-    const canvas=await renderPageToCanvas(pages[i]);
-    const imgData=canvas.toDataURL("image/jpeg",0.98);
-    const imgW=pageW;
-    const imgH=(canvas.height*imgW)/canvas.width;
+    const canvas = await renderPageToCanvas(pages[i]);
+    const imgData = canvas.toDataURL("image/jpeg", 0.98);
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
 
-    pdf.addImage(imgData,"JPEG",0,0,imgW,imgH);
-    if(i<pages.length-1) pdf.addPage();
+    pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
+    if(i < pages.length-1) pdf.addPage();
   }
 
-  const filename=`Ueberfachliche_Kompetenzen_${(el("studentName").value||"Kind").trim().replaceAll(" ","_")}.pdf`;
+  const filename = `Ueberfachliche_Kompetenzen_${(el("studentName").value || "Kind").trim().replaceAll(" ","_")}.pdf`;
   pdf.save(filename);
 }
 
 function openPrintView(){
   buildPrint();
-  const printHTML=document.querySelector("#printArea").innerHTML;
-  const base=location.href.replace(/[^/]+$/,"");
-  const cssHref=base+"styles.css";
+  const printHTML = document.querySelector("#printArea").innerHTML;
+  const base = location.href.replace(/[^/]+$/, "");
+  const cssHref = base + "styles.css";
 
-  const w=window.open("","_blank");
+  const w = window.open("", "_blank");
   w.document.write(`
     <!doctype html>
     <html><head>
@@ -740,7 +825,6 @@ function openPrintView(){
 }
 
 async function handlePdfClick(){
-  // ✅ Garantiert: Button tut immer etwas (Export oder Print-Fallback)
   try{
     if(canUseRealPdf()){
       await exportRealPDF();
@@ -754,95 +838,129 @@ async function handlePdfClick(){
   }
 }
 
-/* ===== Diktat ===== */
+// ===== Diktat =====
 function makeDictationEditable(buttonEl, targetEl){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){buttonEl.disabled=true;return;}
-  const rec=new SR();
-  rec.lang="de-CH"; rec.interimResults=false; rec.continuous=true;
-  let running=false;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ buttonEl.disabled = true; return; }
+
+  const rec = new SR();
+  rec.lang = "de-CH";
+  rec.interimResults = false;
+  rec.continuous = true;
+
+  let running = false;
 
   function insertText(text){
     targetEl.focus();
-    const sel=window.getSelection();
-    if(!sel||sel.rangeCount===0){ targetEl.insertAdjacentText("beforeend", text); return; }
-    const range=sel.getRangeAt(0);
+    const sel = window.getSelection();
+    if(!sel || sel.rangeCount === 0){
+      targetEl.insertAdjacentText("beforeend", text);
+      return;
+    }
+    const range = sel.getRangeAt(0);
     range.deleteContents();
     range.insertNode(document.createTextNode(text));
     range.collapse(false);
-    sel.removeAllRanges(); sel.addRange(range);
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
-  rec.onresult=(event)=>{
-    let out="";
+
+  rec.onresult = (event) => {
+    let out = "";
     for(let i=event.resultIndex;i<event.results.length;i++){
       if(event.results[i].isFinal) out += event.results[i][0].transcript;
     }
-    if(out && out.trim()){ insertText(out.trim()+" "); editorTouched=true; }
+    if(out && out.trim()){
+      insertText(out.trim() + " ");
+      editorTouched = true;
+    }
   };
+
   buttonEl.addEventListener("click", ()=>{
-    if(running){ running=false; buttonEl.textContent="🎤 Diktat"; rec.stop(); }
-    else{ running=true; buttonEl.textContent="⏹️ Stopp"; rec.start(); }
+    if(running){
+      running = false;
+      buttonEl.textContent = "🎤 Diktat";
+      rec.stop();
+    } else {
+      running = true;
+      buttonEl.textContent = "⏹️ Stopp";
+      rec.start();
+    }
   });
 }
 
 function makeDictationTextarea(buttonEl, textarea){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){buttonEl.disabled=true;return;}
-  const rec=new SR();
-  rec.lang="de-CH"; rec.interimResults=false; rec.continuous=true;
-  let running=false;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ buttonEl.disabled = true; return; }
+
+  const rec = new SR();
+  rec.lang = "de-CH";
+  rec.interimResults = false;
+  rec.continuous = true;
+
+  let running = false;
 
   function insertAtCursor(text){
-    const start=textarea.selectionStart ?? textarea.value.length;
-    const end=textarea.selectionEnd ?? textarea.value.length;
-    textarea.value = textarea.value.slice(0,start)+text+textarea.value.slice(end);
-    const pos=start+text.length;
+    const start = textarea.selectionStart ?? textarea.value.length;
+    const end = textarea.selectionEnd ?? textarea.value.length;
+    textarea.value = textarea.value.slice(0,start) + text + textarea.value.slice(end);
+    const pos = start + text.length;
     textarea.setSelectionRange(pos,pos);
     textarea.focus();
   }
-  rec.onresult=(event)=>{
-    let out="";
+
+  rec.onresult = (event) => {
+    let out = "";
     for(let i=event.resultIndex;i<event.results.length;i++){
       if(event.results[i].isFinal) out += event.results[i][0].transcript;
     }
-    if(out && out.trim()) insertAtCursor(out.trim()+" ");
+    if(out && out.trim()) insertAtCursor(out.trim() + " ");
   };
+
   buttonEl.addEventListener("click", ()=>{
-    if(running){ running=false; buttonEl.textContent="🎤 Diktat"; rec.stop(); }
-    else{ running=true; buttonEl.textContent="⏹️ Stopp"; rec.start(); }
+    if(running){
+      running = false;
+      buttonEl.textContent = "🎤 Diktat";
+      rec.stop();
+    } else {
+      running = true;
+      buttonEl.textContent = "⏹️ Stopp";
+      rec.start();
+    }
   });
 }
 
-/* ===== Utilities ===== */
+// ===== Defaults / Reset / Copy =====
 function fillDefaults(){
-  el("place").value=DEFAULT_PLACE;
-  el("date").value=toISODate(new Date());
+  el("place").value = DEFAULT_PLACE;
+  el("date").value = toISODate(new Date());
 }
 function resetStandard(){
   DATA.forEach(g=>g.items.forEach(item=>{
     ensureItemState(item);
-    state.overall[item.id]="auto";
-    for(const lk of LEVELS) state.checks[item.id][lk]={};
+    state.overall[item.id] = "auto";
+    for(const lk of LEVELS) state.checks[item.id][lk] = {};
   }));
-  editorTouched=false;
+  editorTouched = false;
   buildRaster();
   generateText();
 }
 function regenerateOverwrite(){
-  editorTouched=false;
+  editorTouched = false;
   generateText();
 }
 async function copyPlain(){
   await navigator.clipboard.writeText(getEditorPlainText());
 }
 
-/* ===== Init ===== */
+// ===== Init =====
 DATA.forEach(g=>g.items.forEach(ensureItemState));
 buildRaster();
 fillDefaults();
 generateText();
+setupOverlay();
 
-el("reportEditor").addEventListener("input", ()=>{ editorTouched=true; });
+el("reportEditor").addEventListener("input", ()=>{ editorTouched = true; });
 
 ["studentName","className","gender"].forEach(id=>{
   el(id).addEventListener("input", ()=>{ if(!editorTouched) generateText(); });
@@ -854,14 +972,10 @@ el("btnRegen").addEventListener("click", regenerateOverwrite);
 el("btnPdf").addEventListener("click", handlePdfClick);
 el("btnCopy").addEventListener("click", copyPlain);
 
-el("btnAiCopy").addEventListener("click", copyPromptAndText);
+el("btnAiCopy").addEventListener("click", handleAiCopyClick);
 el("btnAiOpen").addEventListener("click", openCopilot);
 el("btnAiClean").addEventListener("click", localCleanTextAndRemarks);
 
-el("btnOverlayClose").addEventListener("click", hideOverlay);
-el("aiOverlay").addEventListener("click",(e)=>{ if(e.target===el("aiOverlay")) hideOverlay(); });
-el("btnOverlayCopyAgain").addEventListener("click", copyPromptAndText);
-el("btnOverlayOpenCopilot").addEventListener("click", ()=>window.open("https://copilot.microsoft.com","_blank"));
-
 makeDictationEditable(el("btnDictateText"), el("reportEditor"));
 makeDictationTextarea(el("btnDictateRemarks"), el("teacherRemarks"));
+
