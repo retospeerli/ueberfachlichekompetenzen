@@ -88,6 +88,9 @@ h2{margin:0 0 10px;font-size:1.15rem}
 .overlay__title{font-weight:900;font-size:1.1rem}
 .overlay__steps{margin:10px 0 0 18px;color:var(--ink);line-height:1.45}
 .overlay__actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.overlay[hidden]{ display:none !important; }
+.overlay, .overlay__card { pointer-events:auto; }
+
 
 /* PRINT/PDF */
 .printArea{width:210mm}
