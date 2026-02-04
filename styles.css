@@ -1,22 +1,32 @@
 :root{
-  --bg:#0b1220;
-  --card:#0f1a33;
-  --ink:#eaf0ff;
-  --muted:#b7c3e6;
-  --line:rgba(255,255,255,.12);
-  --accent2:#7dd3fc;
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --ink: #101828;
+  --muted: #475467;
+  --line: #e4e7ec;
+
+  --primary: #2563eb;
+  --primary-ink: #ffffff;
+
+  --soft-blue: #e8f1ff;
+  --soft-green: #eafaf3;
+  --soft-orange: #fff4e6;
+  --soft-red: #ffecec;
+
+  --mod: #2563eb;
+
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 *{ box-sizing:border-box; }
 body{
   margin:0;
-  background: linear-gradient(180deg, #070b14 0%, #0b1220 60%, #070b14 100%);
-  color:var(--ink);
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .topbar{
   position:sticky; top:0; z-index:10;
-  background: rgba(7,11,20,.85);
+  background: rgba(255,255,255,.9);
   backdrop-filter: blur(10px);
   border-bottom:1px solid var(--line);
 }
@@ -41,11 +51,11 @@ body{
   gap:16px;
 }
 .card{
-  background: rgba(15,26,51,.85);
+  background: var(--card);
   border:1px solid var(--line);
   border-radius:16px;
   padding:16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  box-shadow: 0 10px 22px rgba(16,24,40,.06);
 }
 
 h2{ margin:0 0 10px 0; font-size:1.15rem; }
@@ -62,7 +72,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 .field span{ display:block; color:var(--muted); font-size:.92rem; margin:0 0 6px 0; }
 .field input, .field select{
   width:100%;
-  background: rgba(255,255,255,.06);
+  background: #fff;
   border:1px solid var(--line);
   color:var(--ink);
   padding:10px;
@@ -70,13 +80,13 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   outline:none;
 }
 .field input:focus, .field select:focus{
-  border-color: rgba(125,211,252,.7);
-  box-shadow: 0 0 0 3px rgba(125,211,252,.18);
+  border-color: rgba(37,99,235,.65);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
 }
 
 .actions{ display:flex; gap:10px; flex-wrap:wrap; }
 .btn{
-  background: rgba(255,255,255,.08);
+  background: #fff;
   border:1px solid var(--line);
   color:var(--ink);
   padding:10px 12px;
@@ -85,9 +95,9 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   font-weight:800;
 }
 .btn--primary{
-  background: linear-gradient(135deg, rgba(125,211,252,.85), rgba(255,255,255,.18));
-  border-color: rgba(125,211,252,.55);
-  color:#061025;
+  background: var(--primary);
+  border-color: rgba(37,99,235,.75);
+  color: var(--primary-ink);
 }
 .btn--ghost{ background: transparent; }
 
@@ -102,22 +112,22 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   min-height: 260px;
   border-radius:14px;
   border:1px solid var(--line);
-  background: rgba(255,255,255,.06);
+  background: #fff;
   color:var(--ink);
   padding:12px;
   outline:none;
   white-space: pre-wrap;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 /* Feinjustier-Wörter */
-.mod{ color: var(--accent2); font-weight: 900; }
+.mod{ color: var(--mod); font-weight: 900; }
 
 .textarea{
   width:100%;
   border-radius:14px;
   border:1px solid var(--line);
-  background: rgba(255,255,255,.06);
+  background:#fff;
   color:var(--ink);
   padding:12px;
   outline:none;
@@ -130,7 +140,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   border:1px solid var(--line);
   border-radius:14px;
   padding:12px;
-  background: rgba(255,255,255,.04);
+  background: #fff;
 }
 .group__title{
   font-weight:900;
@@ -141,7 +151,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 }
 
 .detailItem{
-  border-top:1px dashed rgba(255,255,255,.12);
+  border-top:1px dashed var(--line);
   padding-top:12px;
   margin-top:12px;
 }
@@ -153,7 +163,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   gap:12px;
   align-items:flex-start;
 }
-.detailTitle{ font-weight:900; max-width: 66ch; line-height:1.2; }
+.detailTitle{ font-weight:900; max-width: 72ch; line-height:1.2; }
 
 .overall{
   display:flex;
@@ -164,7 +174,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 }
 .overall__label{ color: var(--muted); font-size:.92rem; }
 .overall__select{
-  background: rgba(255,255,255,.06);
+  background:#fff;
   border:1px solid var(--line);
   color: var(--ink);
   padding:8px 10px;
@@ -186,7 +196,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   border:1px solid var(--line);
   border-radius:14px;
   padding:10px;
-  background: rgba(255,255,255,.04);
+  background: #fff;
 }
 .levelCap{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
 .levelCap__short{ font-weight:900; }
@@ -195,13 +205,13 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 .pointList{ display:flex; flex-direction:column; gap:8px; }
 .point{ display:flex; gap:8px; align-items:flex-start; cursor:pointer; }
 .point input{ margin-top:3px; }
-.point span{ font-size:.92rem; line-height:1.2; }
+.point span{ font-size:.92rem; line-height:1.25; }
 
-/* UI-Farbrahmen */
-.levelCol--blue   { outline: 2px solid rgba(125,211,252,.30); }
-.levelCol--green  { outline: 2px solid rgba(68,209,157,.28); }
-.levelCol--orange { outline: 2px solid rgba(255,179,71,.28); }
-.levelCol--red    { outline: 2px solid rgba(255,107,107,.28); }
+/* Farbhintergründe der 4 Stufen (nur UI) */
+.levelCol--blue   { background: var(--soft-blue); }
+.levelCol--green  { background: var(--soft-green); }
+.levelCol--orange { background: var(--soft-orange); }
+.levelCol--red    { background: var(--soft-red); }
 
 /* ===== PRINT/PDF ===== */
 .printArea{ width:210mm; }
@@ -274,7 +284,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   line-height: 1;
 }
 
-/* Gefüllter Punkt statt X */
+/* Gefüllter Punkt statt Kreuz */
 .mark{
   width:5.2mm;
   height:5.2mm;
@@ -330,7 +340,3 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 
 /* Print/PDF: markierte Wörter schwarz */
 #printArea .mod{ color:#111 !important; font-weight:400 !important; }
-
-@media print{
-  body{ background:#fff !important; }
-}
