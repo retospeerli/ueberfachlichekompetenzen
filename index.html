@@ -22,7 +22,14 @@
       <div class="actions">
         <button id="btnReset" class="btn btn--ghost" type="button">Standard</button>
         <button id="btnRegen" class="btn" type="button">Text neu erzeugen</button>
-        <button id="btnPdf" class="btn btn--primary" type="button">PDF erstellen</button>
+
+        <div class="pdfGroup">
+          <label class="check">
+            <input id="pdfIncludeDetails" type="checkbox" />
+            <span>PDF: Details (Bewertungskriterien)</span>
+          </label>
+          <button id="btnPdf" class="btn btn--primary" type="button">PDF erstellen</button>
+        </div>
       </div>
     </div>
   </header>
@@ -89,7 +96,13 @@
         </div>
       </div>
 
-      <div class="muted small">
+      <div class="row row--gap mt">
+        <button id="btnAiCopy" class="btn btn--ghost" type="button">🧠 Prompt + Text kopieren</button>
+        <button id="btnAiOpen" class="btn btn--ghost" type="button">🚀 In Copilot bearbeiten</button>
+        <button id="btnAiClean" class="btn btn--ghost" type="button">🧹 Nur Text glätten</button>
+      </div>
+
+      <div class="muted small mt">
         Der Text ist direkt editierbar (Browser-Rechtschreibung aktiv). Sobald du manuell editierst,
         wird der Text nicht mehr automatisch überschrieben.
       </div>
@@ -105,9 +118,36 @@
         placeholder="Bemerkungen der Lehrperson (optional)."></textarea>
     </section>
 
+    <!-- Overlay: Copilot Anleitung -->
+    <div id="aiOverlay" class="overlay" hidden>
+      <div class="overlay__card" role="dialog" aria-modal="true" aria-labelledby="aiOverlayTitle">
+        <div class="overlay__top">
+          <div id="aiOverlayTitle" class="overlay__title">Copilot-Workflow</div>
+          <button id="btnOverlayClose" class="btn btn--ghost" type="button">✕</button>
+        </div>
+
+        <ol class="overlay__steps">
+          <li><strong>Prompt + Text</strong> wurden kopiert. Wechsle zu <strong>Copilot</strong>.</li>
+          <li>Füge alles mit <strong>Ctrl+V</strong> ein und sende ab.</li>
+          <li>Copilot soll <strong>zwei Blöcke</strong> liefern: <code>AUSWERTUNG:</code> und <code>KOMMENTAR:</code></li>
+          <li>Kopiere den <strong>AUSWERTUNG</strong>-Block zurück und ersetze damit den Text im Editor.</li>
+          <li>Kopiere den <strong>KOMMENTAR</strong>-Block zurück und setze ihn in „Bemerkungen Lehrperson“.</li>
+          <li>Danach: <strong>PDF erstellen</strong>.</li>
+        </ol>
+
+        <div class="overlay__hint">
+          Tipp: Wenn du zuerst den bestehenden Text im Editor markierst (<strong>Ctrl+A</strong>), überschreibst du ihn sauber mit der Copilot-Version.
+        </div>
+
+        <div class="overlay__actions">
+          <button id="btnOverlayCopyAgain" class="btn" type="button">Prompt + Text nochmals kopieren</button>
+          <button id="btnOverlayOpenCopilot" class="btn btn--primary" type="button">Copilot öffnen</button>
+        </div>
+      </div>
+    </div>
+
     <!-- PRINT/PDF (immer 2 Seiten) -->
     <section id="printArea" class="printArea printArea--offscreen" aria-hidden="true">
-
       <!-- Seite 1 -->
       <div class="printPage" data-page="1">
         <div class="printHeader">
@@ -127,14 +167,20 @@
           <div id="printTableSozial" class="zeugnisTable"></div>
         </div>
 
+        <!-- optional Details -->
+        <div id="printDetailsWrap" class="zeugnisSection" hidden>
+          <div class="zeugnisSectionHead">Bewertungskriterien (Details)</div>
+          <div id="printDetails" class="detailTable"></div>
+        </div>
+
         <div class="printBlock">
           <div class="printLabel">Auswertung (Text)</div>
-          <div id="printText" class="printText printText--clamp"></div>
+          <div id="printText" class="printText"></div>
         </div>
 
         <div class="printBlock">
           <div class="printLabel">Bemerkungen Lehrperson</div>
-          <div id="printTeacherRemarks" class="printLines printLines--teacher"></div>
+          <div id="printTeacherRemarks" class="printLines"></div>
         </div>
 
         <div class="printFooter">
@@ -159,7 +205,6 @@
 
         <div class="printBlock">
           <div class="printLabelBox">Unterschriften</div>
-
           <div class="sigBox">
             <div class="sigRow sigRow--top">
               <div><strong>Datum:</strong></div>
@@ -189,7 +234,6 @@
           <div>PS Wädenswil, Schule Untermosen</div>
         </div>
       </div>
-
     </section>
 
   </main>
