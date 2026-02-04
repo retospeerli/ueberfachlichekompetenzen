@@ -1,9 +1,22 @@
+/* app.js — alles integriert:
+   - Helles UI, dunkle Schrift
+   - Raster + Auto-Gesamtstufe + Dropdown Override
+   - Widersprüche pro Kriterium verhindern (ex-Gruppen)
+   - Textgenerator: warm (2–4) / sachlich (5–6), arbeitszeugnisnah
+   - Feinjustier-Wörter farbig im Editor, PDF schwarz
+   - PDF: html2canvas + jsPDF lokal + Fallback Print
+*/
+
 const DEFAULT_PLACE = "Wädenswil";
 const LEVELS = ["vv","g","ge","u"]; // sehr gut → nicht genügend
 const LEVEL_LABEL = { vv:"++", g:"+", ge:"-", u:"--" };
 const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" };
 
-// Datenmodell (hier exemplarisch; du ersetzt später die Punkte 1:1 aus deinem Raster)
+// Punkt-Format: "string" ODER {t:"Text", ex:"gruppe"}
+function pointText(p){ return (typeof p === "string") ? p : (p.t || ""); }
+function pointEx(p){ return (typeof p === "string") ? null : (p.ex || null); }
+
+// Raster (hier exemplarisch; ersetze später die Punkte 1:1 aus deinem Original)
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
@@ -13,21 +26,25 @@ const DATA = [
         title: "Erscheint pünktlich und ordnungsgemäss zum Unterricht",
         levels: {
           vv: { color: "blue",  points: [
-            "Sitzt bei Beginn der Stunde am Platz",
-            "Ist ruhig bei Beginn der Stunde",
-            "Bringt Material und Hausaufgaben immer vollständig"
+            { t:"Sitzt bei Beginn der Stunde am Platz", ex:"start" },
+            { t:"Ist ruhig bei Beginn der Stunde", ex:"start" },
+            { t:"Erledigt Hausaufgaben zuverlässig und vollständig", ex:"homework" },
+            { t:"Bringt Material immer vollständig", ex:"material" }
           ]},
           g:  { color: "green", points: [
-            "Sitzt bei Beginn der Stunde am Platz",
-            "Bringt Material und Hausaufgaben vollständig"
+            { t:"Sitzt bei Beginn der Stunde am Platz", ex:"start" },
+            { t:"Erledigt Hausaufgaben meist vollständig", ex:"homework" },
+            { t:"Bringt Material vollständig", ex:"material" }
           ]},
           ge: { color: "orange",points: [
-            "Ist bei Beginn der Stunde im Zimmer, aber noch nicht am Platz",
-            "Bringt Material und Hausaufgaben teilweise vollständig"
+            { t:"Ist bei Beginn der Stunde im Zimmer, aber noch nicht am Platz", ex:"start" },
+            { t:"Vergisst Hausaufgaben manchmal oder macht sie nicht vollständig", ex:"homework" },
+            { t:"Material ist teilweise unvollständig", ex:"material" }
           ]},
           u:  { color: "red",   points: [
-            "Kommt nach dem Läuten ins Zimmer",
-            "Bringt Material und Hausaufgaben regelmässig unvollständig"
+            { t:"Kommt nach dem Läuten ins Zimmer", ex:"start" },
+            { t:"Vergisst Hausaufgaben häufig oder erledigt sie nicht", ex:"homework" },
+            { t:"Material fehlt häufig", ex:"material" }
           ]}
         }
       },
@@ -110,7 +127,7 @@ const DATA = [
   }
 ];
 
-// ===== Helpers =====
+// ===== DOM & Helpers =====
 const el = (id) => document.getElementById(id);
 
 function toISODate(d){
@@ -198,6 +215,8 @@ function currentSelections(){
 }
 
 // ===== Raster UI =====
+let editorTouched = false;
+
 function buildRaster(){
   const root = el("rasterRoot");
   root.innerHTML = "";
@@ -223,7 +242,7 @@ function buildRaster(){
         <div class="detailTitle">${item.title}</div>
         <div class="overall">
           <span class="overall__label">Gesamtstufe:</span>
-          <select data-overall="${item.id}" class="overall__select" title="Automatisch aus Kreuzen berechnet, bei Bedarf manuell anpassen.">
+          <select data-overall="${item.id}" class="overall__select">
             <option value="auto">Auto</option>
             <option value="vv">++</option>
             <option value="g">+</option>
@@ -234,7 +253,6 @@ function buildRaster(){
       `;
       block.appendChild(top);
 
-      // Auto-Label unter dem Dropdown (zeigt aktuelle Auto-Stufe)
       const autoLine = document.createElement("div");
       autoLine.className = "muted small";
       autoLine.style.marginTop = "6px";
@@ -261,12 +279,16 @@ function buildRaster(){
 
         item.levels[lk].points.forEach((p, idx) => {
           const checked = !!state.checks[item.id][lk][idx];
+          const ex = pointEx(p);
+          const text = pointText(p);
+
           const lab = document.createElement("label");
           lab.className = "point";
           lab.innerHTML = `
             <input type="checkbox" ${checked ? "checked":""}
-              data-item="${item.id}" data-level="${lk}" data-idx="${idx}">
-            <span>${p}</span>
+              data-item="${item.id}" data-level="${lk}" data-idx="${idx}"
+              ${ex ? `data-ex="${ex}"` : ""}>
+            <span>${text}</span>
           `;
           list.appendChild(lab);
         });
@@ -282,13 +304,37 @@ function buildRaster(){
     root.appendChild(wrap);
   });
 
-  // Checkbox Events
+  // Checkbox Events + Widerspruchslogik
   root.querySelectorAll('input[type="checkbox"][data-item]').forEach(cb => {
     cb.addEventListener("change", (e) => {
-      const itemId = e.target.dataset.item;
-      const lk = e.target.dataset.level;
-      const idx = Number(e.target.dataset.idx);
-      state.checks[itemId][lk][idx] = e.target.checked;
+      const target = e.target;
+      const itemId = target.dataset.item;
+      const lk = target.dataset.level;
+      const idx = Number(target.dataset.idx);
+      const ex = target.dataset.ex || null;
+
+      state.checks[itemId][lk][idx] = target.checked;
+
+      // Exklusivgruppen: widersprüchliche Aussagen innerhalb desselben Kriteriums verhindern
+      if(target.checked && ex){
+        // Finde genau dieses Item im DATA
+        const item = DATA.flatMap(g => g.items).find(it => it.id === itemId);
+        if(item){
+          LEVELS.forEach(otherLk => {
+            const pts = item.levels[otherLk].points || [];
+            pts.forEach((p, otherIdx) => {
+              const otherEx = pointEx(p);
+              if(otherEx === ex && !(otherLk === lk && otherIdx === idx)){
+                state.checks[itemId][otherLk][otherIdx] = false;
+                const sel = `input[type="checkbox"][data-item="${itemId}"][data-level="${otherLk}"][data-idx="${otherIdx}"]`;
+                const box = root.querySelector(sel);
+                if(box) box.checked = false;
+              }
+            });
+          });
+        }
+      }
+
       refreshAutoLabels();
       if(!editorTouched) generateText();
     });
@@ -298,7 +344,7 @@ function buildRaster(){
   root.querySelectorAll('select[data-overall]').forEach(sel => {
     sel.value = state.overall[sel.dataset.overall] || "auto";
     sel.addEventListener("change", (e) => {
-      state.overall[e.target.dataset.overall] = e.target.value; // auto oder fix
+      state.overall[e.target.dataset.overall] = e.target.value;
       refreshAutoLabels();
       if(!editorTouched) generateText();
     });
@@ -307,31 +353,21 @@ function buildRaster(){
   refreshAutoLabels();
 }
 
-// zeigt für jedes Kriterium die Auto-Berechnung an (auch wenn Dropdown überschreibt)
 function refreshAutoLabels(){
-  DATA.forEach(g => g.items.forEach(item => {
-    const auto = (function(){
-      const backup = state.overall[item.id];
-      state.overall[item.id] = "auto";
-      const v = computeOverallLevel(item);
-      state.overall[item.id] = backup;
-      return v;
-    })();
+  const flat = DATA.flatMap(g => g.items);
+  flat.forEach(item => {
+    // Auto-Wert berechnen (temporär override auf auto)
+    const backup = state.overall[item.id];
+    state.overall[item.id] = "auto";
+    const auto = computeOverallLevel(item);
+    state.overall[item.id] = backup;
 
     const node = document.querySelector(`[data-autolabel="${item.id}"]`);
     if(node) node.textContent = `${LEVEL_LABEL[auto]} (${LEVEL_TEXT[auto]})`;
-
-    const sel = document.querySelector(`select[data-overall="${item.id}"]`);
-    if(sel){
-      const forced = state.overall[item.id];
-      sel.title = forced === "auto"
-        ? "Auto aktiv (wird aus Kreuzen berechnet)."
-        : `Manuell gesetzt auf ${LEVEL_LABEL[forced]} (${LEVEL_TEXT[forced]}).`;
-    }
-  }));
+  });
 }
 
-// ===== Textgenerator (warm vs sachlich) =====
+// ===== Textgenerator =====
 function buildProfessionalText(ctx, levels){
   const { name, P, cycle } = ctx;
   const L = (id) => levels[id] || "g";
@@ -380,9 +416,6 @@ ${name} schätzt die eigene Leistungsfähigkeit ${weich(L("selbsteinschaetzung")
 
   return `${cycle==="low" ? introLow : introHigh}\n\n${cycle==="low" ? bodyLow : bodyHigh}`;
 }
-
-// ===== Editor =====
-let editorTouched = false;
 
 function setEditorHTML(html){ el("reportEditor").innerHTML = html; }
 function getEditorPlainText(){
@@ -472,7 +505,6 @@ function canUseRealPdf(){
 
 async function exportRealPDF(){
   buildPrint();
-
   const sourcePage = document.querySelector("#printArea .printPage");
   if(!sourcePage) throw new Error("Druckbereich nicht gefunden.");
 
@@ -528,7 +560,6 @@ async function exportRealPDF(){
       `Ueberfachliche_Kompetenzen_${(el("studentName").value || "Kind").trim().replaceAll(" ", "_")}.pdf`;
 
     pdf.save(filename);
-
   } finally {
     document.body.removeChild(staging);
   }
@@ -568,29 +599,6 @@ async function handlePdfClick(){
     catch(err){ console.error("PDF-Export fehlgeschlagen → Print-Fallback", err); }
   }
   openPrintView();
-}
-
-// ===== Copy + Defaults + Reset =====
-async function copyPlain(){
-  await navigator.clipboard.writeText(getEditorPlainText());
-}
-function fillDefaults(){
-  el("place").value = DEFAULT_PLACE;
-  el("date").value = toISODate(new Date());
-}
-function resetStandard(){
-  DATA.forEach(g => g.items.forEach(item => {
-    ensureItemState(item);
-    state.overall[item.id] = "auto";
-    for(const lk of LEVELS) state.checks[item.id][lk] = {};
-  }));
-  editorTouched = false;
-  buildRaster();
-  generateText();
-}
-function regenerateOverwrite(){
-  editorTouched = false;
-  generateText();
 }
 
 // ===== Diktat =====
@@ -636,6 +644,7 @@ function makeDictationEditable(buttonEl, targetEl){
     else { running = true; buttonEl.textContent = "⏹️ Stopp"; rec.start(); }
   });
 }
+
 function makeDictationTextarea(buttonEl, textarea){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ buttonEl.disabled = true; return; }
@@ -670,13 +679,38 @@ function makeDictationTextarea(buttonEl, textarea){
   });
 }
 
+// ===== Defaults / Reset / Copy =====
+function fillDefaults(){
+  el("place").value = DEFAULT_PLACE;
+  el("date").value = toISODate(new Date());
+}
+
+function resetStandard(){
+  DATA.forEach(g => g.items.forEach(item => {
+    ensureItemState(item);
+    state.overall[item.id] = "auto";
+    for(const lk of LEVELS) state.checks[item.id][lk] = {};
+  }));
+  editorTouched = false;
+  buildRaster();
+  generateText();
+}
+
+function regenerateOverwrite(){
+  editorTouched = false;
+  generateText();
+}
+
+async function copyPlain(){
+  await navigator.clipboard.writeText(getEditorPlainText());
+}
+
 // ===== Init =====
 DATA.forEach(g => g.items.forEach(ensureItemState));
 buildRaster();
 fillDefaults();
 generateText();
 
-let editorTouched = false;
 el("reportEditor").addEventListener("input", () => { editorTouched = true; });
 
 ["studentName","className","gender"].forEach(id => {
