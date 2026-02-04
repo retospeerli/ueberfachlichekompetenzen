@@ -1,4 +1,3 @@
-/* styles.css — helles Design, dunkle Schrift */
 :root{
   --bg: #f6f7fb;
   --card: #ffffff;
@@ -129,7 +128,6 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   resize:vertical;
 }
 
-/* ===== Raster ===== */
 .raster{ display:flex; flex-direction:column; gap:14px; }
 .group{
   border:1px solid var(--line);
@@ -212,7 +210,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 
 .printPage{
   width:210mm;
-  min-height:297mm;
+  height:297mm;
   background:#fff;
   color:#111;
   padding:14mm 14mm 12mm 14mm;
@@ -259,20 +257,22 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   justify-items:center;
 }
 
+/* Header rechts: vertikal + klein + NICHT auf dem Kopf */
 .zHeaderRight{
   display:grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4mm;
   justify-items:center;
   align-items:end;
-  font-size:8.5pt;
+  font-size:7.6pt;          /* kleiner */
   color:#333;
   transform: translateY(-1mm);
 }
 .zHeaderRight .rot{
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  writing-mode: vertical-rl; /* vertikal */
+  transform: none;           /* KEIN 180° mehr */
   line-height: 1;
+  letter-spacing: 0.2px;
 }
 
 .mark{
@@ -304,9 +304,25 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   display:inline-block;
   min-width: 55mm;
 }
-.printText{ font-size:11pt; line-height:1.40; white-space:pre-wrap; }
 
+/* Ziel: Text + Lehrperson-Bemerkungen sicher auf Seite 1 */
+.printText{
+  font-size:10.7pt;
+  line-height:1.34;
+  white-space:pre-wrap;
+}
+.printText--clamp{
+  max-height: 88mm;   /* begrenzt, damit Seite 1 nicht auf Seite 2 überläuft */
+  overflow:hidden;
+}
+
+/* Lehrperson: fixes Feld */
 .printLines .line{ height:8mm; border-bottom:1px solid #444; margin-bottom:3mm; }
+.printLines--teacher .line{ height:7.5mm; }
+.printLines--teacher{
+  max-height: 28mm;
+  overflow:hidden;
+}
 
 .sigBox{ margin-top:3mm; border:1px solid #444; }
 .sigRow{ display:grid; }
@@ -329,3 +345,9 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 
 /* PDF: markierte Wörter schwarz */
 #printArea .mod{ color:#111 !important; font-weight:400 !important; }
+
+/* Print-Fallback: sauberer Seitenumbruch */
+@media print{
+  .printPage{ page-break-after: always; }
+  .printPage:last-child{ page-break-after: auto; }
+}
