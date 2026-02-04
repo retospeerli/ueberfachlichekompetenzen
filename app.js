@@ -1,19 +1,9 @@
-/* Überfachliche Kompetenzen – Stand gemäss Chat:
-   - Lokale Vendor-Libs: vendor/html2canvas.min.js, vendor/jspdf.umd.min.js
-   - PDF: html2canvas + jsPDF (robust) + Fallback Print
-   - Tabelle im PDF: sehr gut → gut → genügend → nicht genügend (links→rechts), gefüllter Punkt
-   - Text: professionell, pädagogisch fundiert; 2–4 warm, 5–6 sachlicher
-   - Feinjustier-Wörter farbig im Editor, PDF schwarz
-*/
-
 const DEFAULT_PLACE = "Wädenswil";
-
-// Reihenfolge & Labels
-const LEVELS = ["vv","g","ge","u"]; // vv=sehr gut, g=gut, ge=genügend, u=nicht genügend
+const LEVELS = ["vv","g","ge","u"]; // sehr gut → nicht genügend
 const LEVEL_LABEL = { vv:"++", g:"+", ge:"-", u:"--" };
 const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" };
 
-// ===== Raster-Daten (derzeit wie in der letzten Version; erweiterbar mit farbigen Kriterien) =====
+// Datenmodell (hier exemplarisch; du ersetzt später die Punkte 1:1 aus deinem Raster)
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
@@ -45,119 +35,50 @@ const DATA = [
         id: "aktiv",
         title: "Beteiligt sich aktiv am Unterricht",
         levels: {
-          vv: { color: "blue", points: [
-            "Stellt Fragen",
-            "Sucht Lösungen",
-            "Zeigt grosse Eigeninitiative"
-          ]},
-          g:  { color: "green",points: [
-            "Stellt Fragen",
-            "Zeigt Eigeninitiative"
-          ]},
-          ge: { color: "orange",points: [
-            "Stellt selten Fragen",
-            "Zeigt wenig Eigeninitiative"
-          ]},
-          u:  { color: "red", points: [
-            "Stellt keine Fragen",
-            "Zeigt keine Eigeninitiative"
-          ]}
+          vv: { color: "blue", points: ["Stellt Fragen","Sucht Lösungen","Zeigt grosse Eigeninitiative"]},
+          g:  { color: "green",points: ["Stellt Fragen","Zeigt Eigeninitiative"]},
+          ge: { color: "orange",points: ["Stellt selten Fragen","Zeigt wenig Eigeninitiative"]},
+          u:  { color: "red", points: ["Stellt keine Fragen","Zeigt keine Eigeninitiative"]}
         }
       },
       {
         id: "konzentriert",
         title: "Arbeitet konzentriert und ausdauernd",
         levels: {
-          vv: { color: "blue", points: [
-            "Arbeitet konzentriert",
-            "Arbeitet ausdauernd",
-            "Beendet Aufgaben eigenständig"
-          ]},
-          g:  { color: "green",points: [
-            "Arbeitet meistens konzentriert",
-            "Arbeitet meistens ausdauernd",
-            "Beendet Aufgaben"
-          ]},
-          ge: { color: "orange",points: [
-            "Arbeitet teilweise konzentriert",
-            "Lässt sich ablenken",
-            "Beendet Aufgaben teilweise"
-          ]},
-          u:  { color: "red", points: [
-            "Lässt sich bei der Arbeit ablenken",
-            "Beendet Aufgaben selten"
-          ]}
+          vv: { color: "blue", points: ["Arbeitet konzentriert","Arbeitet ausdauernd","Beendet Aufgaben eigenständig"]},
+          g:  { color: "green",points: ["Arbeitet meistens konzentriert","Arbeitet meistens ausdauernd","Beendet Aufgaben"]},
+          ge: { color: "orange",points: ["Arbeitet teilweise konzentriert","Lässt sich ablenken","Beendet Aufgaben teilweise"]},
+          u:  { color: "red", points: ["Lässt sich bei der Arbeit ablenken","Beendet Aufgaben selten"]}
         }
       },
       {
         id: "sorgfalt",
         title: "Gestaltet Arbeiten sorgfältig und zuverlässig",
         levels: {
-          vv: { color: "blue", points: [
-            "Arbeitet mündlich und schriftlich sorgfältig, zuverlässig und selbständig",
-            "Geht mit dem Material korrekt um"
-          ]},
-          g:  { color: "green",points: [
-            "Arbeitet oft sorgfältig, zuverlässig und selbständig",
-            "Geht mit dem Material korrekt um"
-          ]},
-          ge: { color: "orange",points: [
-            "Arbeitet teilweise unsorgfältig oder unzuverlässig",
-            "Geht mit dem Material teilweise korrekt um"
-          ]},
-          u:  { color: "red", points: [
-            "Arbeitet häufig unsorgfältig oder unzuverlässig",
-            "Geht mit dem Material nicht korrekt um"
-          ]}
+          vv: { color: "blue", points: ["Arbeitet mündlich und schriftlich sorgfältig, zuverlässig und selbständig","Geht mit dem Material korrekt um"]},
+          g:  { color: "green",points: ["Arbeitet oft sorgfältig, zuverlässig und selbständig","Geht mit dem Material korrekt um"]},
+          ge: { color: "orange",points: ["Arbeitet teilweise unsorgfältig oder unzuverlässig","Geht mit dem Material teilweise korrekt um"]},
+          u:  { color: "red", points: ["Arbeitet häufig unsorgfältig oder unzuverlässig","Geht mit dem Material nicht korrekt um"]}
         }
       },
       {
         id: "zusammenarbeit",
         title: "Kann mit anderen zusammenarbeiten",
         levels: {
-          vv: { color: "blue", points: [
-            "Arbeitet mit allen zusammen",
-            "Hilft anderen",
-            "Übernimmt Verantwortung"
-          ]},
-          g:  { color: "green",points: [
-            "Arbeitet mit anderen zusammen",
-            "Hilft anderen"
-          ]},
-          ge: { color: "orange",points: [
-            "Hat Schwierigkeiten, mit anderen zusammenzuarbeiten",
-            "Hilft anderen nach Aufforderung"
-          ]},
-          u:  { color: "red", points: [
-            "Stört die Zusammenarbeit in der Gruppe",
-            "Hilft anderen nur wenn es sein muss"
-          ]}
+          vv: { color: "blue", points: ["Arbeitet mit allen zusammen","Hilft anderen","Übernimmt Verantwortung"]},
+          g:  { color: "green",points: ["Arbeitet mit anderen zusammen","Hilft anderen"]},
+          ge: { color: "orange",points: ["Hat Schwierigkeiten, mit anderen zusammenzuarbeiten","Hilft anderen nach Aufforderung"]},
+          u:  { color: "red", points: ["Stört die Zusammenarbeit in der Gruppe","Hilft anderen nur wenn es sein muss"]}
         }
       },
       {
         id: "selbsteinschaetzung",
         title: "Schätzt die eigene Leistungsfähigkeit realistisch ein",
         levels: {
-          vv: { color: "blue", points: [
-            "Kennt Stärken sehr gut",
-            "Kennt Schwächen sehr gut",
-            "Setzt sich herausfordernde und erreichbare Ziele"
-          ]},
-          g:  { color: "green",points: [
-            "Kennt Stärken",
-            "Kennt Schwächen",
-            "Setzt sich realistische Ziele"
-          ]},
-          ge: { color: "orange",points: [
-            "Kennt Stärken teilweise",
-            "Kennt Schwächen teilweise",
-            "Braucht Hilfe, um realistische Ziele zu setzen"
-          ]},
-          u:  { color: "red", points: [
-            "Kennt Stärken noch kaum",
-            "Kennt Schwächen noch kaum",
-            "Kann sich kaum realistische Ziele setzen"
-          ]}
+          vv: { color: "blue", points: ["Kennt Stärken sehr gut","Kennt Schwächen sehr gut","Setzt sich herausfordernde und erreichbare Ziele"]},
+          g:  { color: "green",points: ["Kennt Stärken","Kennt Schwächen","Setzt sich realistische Ziele"]},
+          ge: { color: "orange",points: ["Kennt Stärken teilweise","Kennt Schwächen teilweise","Braucht Hilfe, um realistische Ziele zu setzen"]},
+          u:  { color: "red", points: ["Kennt Stärken noch kaum","Kennt Schwächen noch kaum","Kann sich kaum realistische Ziele setzen"]}
         }
       }
     ]
@@ -169,51 +90,27 @@ const DATA = [
         id: "regeln",
         title: "Akzeptiert die Regeln des schulischen Zusammenlebens",
         levels: {
-          vv: { color: "blue", points: [
-            "Hält Regeln ein",
-            "Führt Ämtli selbständig aus"
-          ]},
-          g:  { color: "green",points: [
-            "Hält Regeln ein",
-            "Führt Ämtli aus"
-          ]},
-          ge: { color: "orange",points: [
-            "Hält Regeln nach Aufforderung ein",
-            "Führt Ämtli bei Aufforderung aus"
-          ]},
-          u:  { color: "red", points: [
-            "Hält Regeln nicht zuverlässig ein",
-            "Führt Ämtli mit Unterstützung aus"
-          ]}
+          vv: { color: "blue", points: ["Hält Regeln ein","Führt Ämtli selbständig aus"]},
+          g:  { color: "green",points: ["Hält Regeln ein","Führt Ämtli aus"]},
+          ge: { color: "orange",points: ["Hält Regeln nach Aufforderung ein","Führt Ämtli bei Aufforderung aus"]},
+          u:  { color: "red", points: ["Hält Regeln nicht zuverlässig ein","Führt Ämtli mit Unterstützung aus"]}
         }
       },
       {
         id: "respekt",
         title: "Begegnet Lehrpersonen und Mitschülern respektvoll",
         levels: {
-          vv: { color: "blue", points: [
-            "Begegnet Erwachsenen respektvoll",
-            "Begegnet Mitschülerinnen und Mitschülern respektvoll"
-          ]},
-          g:  { color: "green",points: [
-            "Begegnet Erwachsenen grundsätzlich respektvoll",
-            "Begegnet Mitschülerinnen und Mitschülern grundsätzlich respektvoll"
-          ]},
-          ge: { color: "orange",points: [
-            "Begegnet Erwachsenen teilweise respektvoll",
-            "Begegnet Mitschülerinnen und Mitschülern teilweise respektvoll"
-          ]},
-          u:  { color: "red", points: [
-            "Begegnet Erwachsenen selten respektvoll",
-            "Begegnet Mitschülerinnen und Mitschülern selten respektvoll"
-          ]}
+          vv: { color: "blue", points: ["Begegnet Erwachsenen respektvoll","Begegnet Mitschülerinnen und Mitschülern respektvoll"]},
+          g:  { color: "green",points: ["Begegnet Erwachsenen grundsätzlich respektvoll","Begegnet Mitschülerinnen und Mitschülern grundsätzlich respektvoll"]},
+          ge: { color: "orange",points: ["Begegnet Erwachsenen teilweise respektvoll","Begegnet Mitschülerinnen und Mitschülern teilweise respektvoll"]},
+          u:  { color: "red", points: ["Begegnet Erwachsenen selten respektvoll","Begegnet Mitschülerinnen und Mitschülern selten respektvoll"]}
         }
       }
     ]
   }
 ];
 
-// ===== DOM =====
+// ===== Helpers =====
 const el = (id) => document.getElementById(id);
 
 function toISODate(d){
@@ -232,19 +129,14 @@ function pronouns(g){
     ? { subj:"sie", obj:"sie", poss:"ihr", dat:"ihr" }
     : { subj:"er", obj:"ihn", poss:"sein", dat:"ihm" };
 }
-
-// Klasse → Zyklus (2–4 warm, 5–6 sachlicher)
 function getCycle(className){
   const m = (className || "").match(/\d+/);
   if(!m) return "low";
   const k = parseInt(m[0], 10);
   return (k <= 4) ? "low" : "high";
 }
-
-// Feinjustier-Markierung
 function mod(w){ return `<span class="mod">${w}</span>`; }
 
-// Pädagogische Weichmacher
 function weich(level){
   if(level==="vv") return mod("durchwegs");
   if(level==="g")  return mod("meist");
@@ -258,14 +150,13 @@ function sicher(level){
   return mod("mit Unterstützung");
 }
 function kritisch(level){
-  // für kritische Stellen (ohne verletzend zu sein)
   if(level==="vv" || level==="g") return "";
   if(level==="ge") return ` ${mod("Dabei braucht")} ${mod("es noch")} gelegentlich eine Erinnerung oder Strukturierung.`;
   return ` ${mod("Hier braucht")} ${mod("es deutlich")} mehr Begleitung, damit Ziele zuverlässig erreicht werden.`;
 }
 
-// ===== State (nur RAM) =====
-const state = { checks:{}, overall:{} };
+// ===== State =====
+const state = { checks:{}, overall:{} }; // overall: "auto" | "vv" | "g" | "ge" | "u"
 
 function ensureItemState(item){
   if(!state.checks[item.id]) state.checks[item.id] = {};
@@ -273,105 +164,6 @@ function ensureItemState(item){
     if(!state.checks[item.id][lk]) state.checks[item.id][lk] = {};
   }
   if(!state.overall[item.id]) state.overall[item.id] = "auto";
-}
-
-// ===== Raster UI =====
-function buildRaster(){
-  const root = el("rasterRoot");
-  root.innerHTML = "";
-
-  DATA.forEach(group => {
-    const wrap = document.createElement("div");
-    wrap.className = "group";
-
-    const head = document.createElement("div");
-    head.className = "group__title";
-    head.innerHTML = `<div>${group.group}</div><div class="muted">${group.items.length} Kriterien</div>`;
-    wrap.appendChild(head);
-
-    group.items.forEach(item => {
-      ensureItemState(item);
-
-      const block = document.createElement("div");
-      block.className = "detailItem";
-
-      const top = document.createElement("div");
-      top.className = "detailTop";
-      top.innerHTML = `
-        <div class="detailTitle">${item.title}</div>
-        <div class="overall">
-          <span class="overall__label">Gesamtstufe:</span>
-          <select data-overall="${item.id}" class="overall__select">
-            <option value="auto">Auto</option>
-            <option value="vv">++</option>
-            <option value="g">+</option>
-            <option value="ge">-</option>
-            <option value="u">--</option>
-          </select>
-        </div>
-      `;
-      block.appendChild(top);
-
-      const grid = document.createElement("div");
-      grid.className = "levelGrid";
-
-      LEVELS.forEach(lk => {
-        const col = document.createElement("div");
-        col.className = `levelCol levelCol--${item.levels[lk].color}`;
-
-        const cap = document.createElement("div");
-        cap.className = "levelCap";
-        cap.innerHTML = `
-          <div class="levelCap__short">${LEVEL_LABEL[lk]}</div>
-          <div class="levelCap__long">${LEVEL_TEXT[lk]}</div>
-        `;
-        col.appendChild(cap);
-
-        const list = document.createElement("div");
-        list.className = "pointList";
-
-        item.levels[lk].points.forEach((p, idx) => {
-          const checked = !!state.checks[item.id][lk][idx];
-          const lab = document.createElement("label");
-          lab.className = "point";
-          lab.innerHTML = `
-            <input type="checkbox" ${checked ? "checked":""}
-              data-item="${item.id}" data-level="${lk}" data-idx="${idx}">
-            <span>${p}</span>
-          `;
-          list.appendChild(lab);
-        });
-
-        col.appendChild(list);
-        grid.appendChild(col);
-      });
-
-      block.appendChild(grid);
-      wrap.appendChild(block);
-    });
-
-    root.appendChild(wrap);
-  });
-
-  // Events: Checkboxes
-  root.querySelectorAll('input[type="checkbox"][data-item]').forEach(cb => {
-    cb.addEventListener("change", (e) => {
-      const itemId = e.target.dataset.item;
-      const lk = e.target.dataset.level;
-      const idx = Number(e.target.dataset.idx);
-      state.checks[itemId][lk][idx] = e.target.checked;
-      if(!editorTouched) generateText();
-    });
-  });
-
-  // Events: Override
-  root.querySelectorAll('select[data-overall]').forEach(sel => {
-    sel.value = state.overall[sel.dataset.overall] || "auto";
-    sel.addEventListener("change", (e) => {
-      state.overall[e.target.dataset.overall] = e.target.value;
-      if(!editorTouched) generateText();
-    });
-  });
 }
 
 // ===== Auto-Gesamtstufe =====
@@ -405,7 +197,141 @@ function currentSelections(){
   return out;
 }
 
-// ===== Textgenerator (2–4 warm, 5–6 sachlicher) =====
+// ===== Raster UI =====
+function buildRaster(){
+  const root = el("rasterRoot");
+  root.innerHTML = "";
+
+  DATA.forEach(group => {
+    const wrap = document.createElement("div");
+    wrap.className = "group";
+
+    const head = document.createElement("div");
+    head.className = "group__title";
+    head.innerHTML = `<div>${group.group}</div><div class="muted">${group.items.length} Kriterien</div>`;
+    wrap.appendChild(head);
+
+    group.items.forEach(item => {
+      ensureItemState(item);
+
+      const block = document.createElement("div");
+      block.className = "detailItem";
+
+      const top = document.createElement("div");
+      top.className = "detailTop";
+      top.innerHTML = `
+        <div class="detailTitle">${item.title}</div>
+        <div class="overall">
+          <span class="overall__label">Gesamtstufe:</span>
+          <select data-overall="${item.id}" class="overall__select" title="Automatisch aus Kreuzen berechnet, bei Bedarf manuell anpassen.">
+            <option value="auto">Auto</option>
+            <option value="vv">++</option>
+            <option value="g">+</option>
+            <option value="ge">-</option>
+            <option value="u">--</option>
+          </select>
+        </div>
+      `;
+      block.appendChild(top);
+
+      // Auto-Label unter dem Dropdown (zeigt aktuelle Auto-Stufe)
+      const autoLine = document.createElement("div");
+      autoLine.className = "muted small";
+      autoLine.style.marginTop = "6px";
+      autoLine.innerHTML = `Auto-Berechnung: <strong data-autolabel="${item.id}"></strong>`;
+      block.appendChild(autoLine);
+
+      const grid = document.createElement("div");
+      grid.className = "levelGrid";
+
+      LEVELS.forEach(lk => {
+        const col = document.createElement("div");
+        col.className = `levelCol levelCol--${item.levels[lk].color}`;
+
+        const capBox = document.createElement("div");
+        capBox.className = "levelCap";
+        capBox.innerHTML = `
+          <div class="levelCap__short">${LEVEL_LABEL[lk]}</div>
+          <div class="levelCap__long">${LEVEL_TEXT[lk]}</div>
+        `;
+        col.appendChild(capBox);
+
+        const list = document.createElement("div");
+        list.className = "pointList";
+
+        item.levels[lk].points.forEach((p, idx) => {
+          const checked = !!state.checks[item.id][lk][idx];
+          const lab = document.createElement("label");
+          lab.className = "point";
+          lab.innerHTML = `
+            <input type="checkbox" ${checked ? "checked":""}
+              data-item="${item.id}" data-level="${lk}" data-idx="${idx}">
+            <span>${p}</span>
+          `;
+          list.appendChild(lab);
+        });
+
+        col.appendChild(list);
+        grid.appendChild(col);
+      });
+
+      block.appendChild(grid);
+      wrap.appendChild(block);
+    });
+
+    root.appendChild(wrap);
+  });
+
+  // Checkbox Events
+  root.querySelectorAll('input[type="checkbox"][data-item]').forEach(cb => {
+    cb.addEventListener("change", (e) => {
+      const itemId = e.target.dataset.item;
+      const lk = e.target.dataset.level;
+      const idx = Number(e.target.dataset.idx);
+      state.checks[itemId][lk][idx] = e.target.checked;
+      refreshAutoLabels();
+      if(!editorTouched) generateText();
+    });
+  });
+
+  // Override Events
+  root.querySelectorAll('select[data-overall]').forEach(sel => {
+    sel.value = state.overall[sel.dataset.overall] || "auto";
+    sel.addEventListener("change", (e) => {
+      state.overall[e.target.dataset.overall] = e.target.value; // auto oder fix
+      refreshAutoLabels();
+      if(!editorTouched) generateText();
+    });
+  });
+
+  refreshAutoLabels();
+}
+
+// zeigt für jedes Kriterium die Auto-Berechnung an (auch wenn Dropdown überschreibt)
+function refreshAutoLabels(){
+  DATA.forEach(g => g.items.forEach(item => {
+    const auto = (function(){
+      const backup = state.overall[item.id];
+      state.overall[item.id] = "auto";
+      const v = computeOverallLevel(item);
+      state.overall[item.id] = backup;
+      return v;
+    })();
+
+    const node = document.querySelector(`[data-autolabel="${item.id}"]`);
+    if(node) node.textContent = `${LEVEL_LABEL[auto]} (${LEVEL_TEXT[auto]})`;
+
+    const sel = document.querySelector(`select[data-overall="${item.id}"]`);
+    if(sel){
+      const forced = state.overall[item.id];
+      sel.title = forced === "auto"
+        ? "Auto aktiv (wird aus Kreuzen berechnet)."
+        : `Manuell gesetzt auf ${LEVEL_LABEL[forced]} (${LEVEL_TEXT[forced]}).`;
+    }
+  }));
+}
+
+// ===== Textgenerator (warm vs sachlich) =====
 function buildProfessionalText(ctx, levels){
   const { name, P, cycle } = ctx;
   const L = (id) => levels[id] || "g";
@@ -416,7 +342,7 @@ function buildProfessionalText(ctx, levels){
   const introHigh =
 `${name} zeigt in den überfachlichen Kompetenzen insgesamt ein ${mod("differenziertes")} Profil. Die folgenden Ausführungen geben Auskunft über das Arbeits-, Lern- und Sozialverhalten im Schulalltag.`;
 
-  const textLow = `
+  const bodyLow = `
 ${cap(P.subj)} erscheint zu Unterrichtsbeginn ${weich(L("puenktlich"))} startbereit und organisiert. Material und Hausaufgaben sind ${weich(L("puenktlich"))} vollständig vorhanden.${kritisch(L("puenktlich"))}
 
 Im Unterricht beteiligt sich ${name} ${weich(L("aktiv"))} aktiv. ${cap(P.subj)} zeigt Interesse am Lernstoff und bringt sich mit eigenen Ideen ein.${kritisch(L("aktiv"))}
@@ -434,7 +360,7 @@ Im Umgang mit anderen begegnet ${name} seinen Mitmenschen ${weich(L("respekt"))}
 ${name} schätzt die eigene Leistungsfähigkeit ${weich(L("selbsteinschaetzung"))} realistisch ein. ${cap(P.subj)} kann eigene Stärken erkennen und ist bereit, an Entwicklungspunkten zu arbeiten. Ziele setzt sich ${P.subj} ${sicher(L("selbsteinschaetzung"))} und arbeitet daran, diese zu erreichen.${kritisch(L("selbsteinschaetzung"))}
 `.trim();
 
-  const textHigh = `
+  const bodyHigh = `
 ${name} erscheint zu Unterrichtsbeginn ${weich(L("puenktlich"))} startbereit und organisiert. Material und Hausaufgaben sind ${weich(L("puenktlich"))} vollständig vorhanden.${kritisch(L("puenktlich"))}
 
 ${cap(P.subj)} beteiligt sich ${weich(L("aktiv"))} am Unterricht und bringt eigene Beiträge ein. Selbständigkeit und Initiative zeigt ${P.subj} ${sicher(L("aktiv"))}.${kritisch(L("aktiv"))}
@@ -452,7 +378,7 @@ Im Umgang mit anderen begegnet ${name} seinen Mitmenschen ${weich(L("respekt"))}
 ${name} schätzt die eigene Leistungsfähigkeit ${weich(L("selbsteinschaetzung"))} realistisch ein und kann Stärken sowie Entwicklungsfelder benennen. Ziele werden ${sicher(L("selbsteinschaetzung"))} gesetzt und verfolgt.${kritisch(L("selbsteinschaetzung"))}
 `.trim();
 
-  return `${(cycle==="low") ? introLow : introHigh}\n\n${(cycle==="low") ? textLow : textHigh}`;
+  return `${cycle==="low" ? introLow : introHigh}\n\n${cycle==="low" ? bodyLow : bodyHigh}`;
 }
 
 // ===== Editor =====
@@ -464,7 +390,6 @@ function getEditorPlainText(){
   tmp.innerHTML = el("reportEditor").innerHTML;
   return (tmp.innerText || "").trim();
 }
-
 function generateText(){
   const name = el("studentName").value.trim() || "Das Kind";
   const P = pronouns(el("gender").value);
@@ -476,7 +401,7 @@ function generateText(){
   setEditorHTML(html);
 }
 
-// ===== Print füllen =====
+// ===== Print/PDF =====
 function buildPrintTables(selections){
   const headerRight = `
     <div class="zHeaderRight">
@@ -519,9 +444,7 @@ function buildPrint(){
   el("sigTeacherCap").textContent =
     (teacherName && teacherName !== "—") ? `Lehrperson: ${teacherName}` : "Lehrperson";
 
-  const selections = currentSelections();
-  buildPrintTables(selections);
-
+  buildPrintTables(currentSelections());
   el("printText").textContent = getEditorPlainText();
 
   const remarks = (el("teacherRemarks").value || "").trim();
@@ -538,9 +461,8 @@ function buildPrint(){
   }
 }
 
-// ===== PDF Export (robust) + Fallback Print =====
 function getJsPDF(){
-  if(window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF; // UMD
+  if(window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
   if(window.jsPDF) return window.jsPDF;
   return null;
 }
@@ -554,7 +476,6 @@ async function exportRealPDF(){
   const sourcePage = document.querySelector("#printArea .printPage");
   if(!sourcePage) throw new Error("Druckbereich nicht gefunden.");
 
-  // Stabiler Clone (verhindert „weisses PDF“ durch Offscreen/Styles)
   const clone = sourcePage.cloneNode(true);
 
   const staging = document.createElement("div");
@@ -564,15 +485,11 @@ async function exportRealPDF(){
   staging.style.zIndex = "999999";
   staging.style.background = "#fff";
   staging.style.pointerEvents = "none";
-  staging.style.padding = "0";
   staging.appendChild(clone);
   document.body.appendChild(staging);
 
   await new Promise(r => requestAnimationFrame(r));
   await new Promise(r => setTimeout(r, 140));
-  if(document.fonts && document.fonts.ready){
-    try{ await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))]); } catch {}
-  }
 
   try{
     const canvas = await window.html2canvas(clone, {
@@ -590,7 +507,6 @@ async function exportRealPDF(){
 
     const imgData = canvas.toDataURL("image/jpeg", 0.98);
     const pageW = 210, pageH = 297;
-
     const imgW = pageW;
     const imgH = (canvas.height * imgW) / canvas.width;
 
@@ -648,52 +564,39 @@ function openPrintView(){
 
 async function handlePdfClick(){
   if(canUseRealPdf()){
-    try{
-      await exportRealPDF();
-      return;
-    } catch(err){
-      console.error("PDF-Export fehlgeschlagen → Fallback Print", err);
-    }
+    try{ await exportRealPDF(); return; }
+    catch(err){ console.error("PDF-Export fehlgeschlagen → Print-Fallback", err); }
   }
   openPrintView();
 }
 
-// ===== Defaults / Buttons =====
+// ===== Copy + Defaults + Reset =====
+async function copyPlain(){
+  await navigator.clipboard.writeText(getEditorPlainText());
+}
 function fillDefaults(){
   el("place").value = DEFAULT_PLACE;
   el("date").value = toISODate(new Date());
 }
-
 function resetStandard(){
   DATA.forEach(g => g.items.forEach(item => {
     ensureItemState(item);
     state.overall[item.id] = "auto";
-    for(const lk of LEVELS){
-      state.checks[item.id][lk] = {};
-    }
+    for(const lk of LEVELS) state.checks[item.id][lk] = {};
   }));
   editorTouched = false;
   buildRaster();
   generateText();
 }
-
 function regenerateOverwrite(){
   editorTouched = false;
   generateText();
 }
 
-async function copyPlain(){
-  await navigator.clipboard.writeText(getEditorPlainText());
-}
-
 // ===== Diktat =====
 function makeDictationEditable(buttonEl, targetEl){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    buttonEl.disabled = true;
-    buttonEl.title = "Diktierfunktion wird von diesem Browser nicht unterstützt.";
-    return;
-  }
+  if(!SR){ buttonEl.disabled = true; return; }
 
   const rec = new SR();
   rec.lang = "de-CH";
@@ -729,25 +632,13 @@ function makeDictationEditable(buttonEl, targetEl){
   };
 
   buttonEl.addEventListener("click", () => {
-    if(running){
-      running = false;
-      buttonEl.textContent = "🎤 Diktat";
-      rec.stop();
-    } else {
-      running = true;
-      buttonEl.textContent = "⏹️ Stopp";
-      rec.start();
-    }
+    if(running){ running = false; buttonEl.textContent = "🎤 Diktat"; rec.stop(); }
+    else { running = true; buttonEl.textContent = "⏹️ Stopp"; rec.start(); }
   });
 }
-
 function makeDictationTextarea(buttonEl, textarea){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    buttonEl.disabled = true;
-    buttonEl.title = "Diktierfunktion wird von diesem Browser nicht unterstützt.";
-    return;
-  }
+  if(!SR){ buttonEl.disabled = true; return; }
 
   const rec = new SR();
   rec.lang = "de-CH";
@@ -774,15 +665,8 @@ function makeDictationTextarea(buttonEl, textarea){
   };
 
   buttonEl.addEventListener("click", () => {
-    if(running){
-      running = false;
-      buttonEl.textContent = "🎤 Diktat";
-      rec.stop();
-    } else {
-      running = true;
-      buttonEl.textContent = "⏹️ Stopp";
-      rec.start();
-    }
+    if(running){ running = false; buttonEl.textContent = "🎤 Diktat"; rec.stop(); }
+    else { running = true; buttonEl.textContent = "⏹️ Stopp"; rec.start(); }
   });
 }
 
@@ -792,17 +676,18 @@ buildRaster();
 fillDefaults();
 generateText();
 
-el("btnReset").addEventListener("click", resetStandard);
-el("btnRegen").addEventListener("click", regenerateOverwrite);
-el("btnPdf").addEventListener("click", handlePdfClick);
-el("btnCopy").addEventListener("click", copyPlain);
-
+let editorTouched = false;
 el("reportEditor").addEventListener("input", () => { editorTouched = true; });
 
 ["studentName","className","gender"].forEach(id => {
   el(id).addEventListener("input", () => { if(!editorTouched) generateText(); });
 });
 el("gender").addEventListener("change", () => { if(!editorTouched) generateText(); });
+
+el("btnReset").addEventListener("click", resetStandard);
+el("btnRegen").addEventListener("click", regenerateOverwrite);
+el("btnPdf").addEventListener("click", handlePdfClick);
+el("btnCopy").addEventListener("click", copyPlain);
 
 makeDictationEditable(el("btnDictateText"), el("reportEditor"));
 makeDictationTextarea(el("btnDictateRemarks"), el("teacherRemarks"));
