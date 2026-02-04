@@ -1,18 +1,19 @@
-/* Überfachliche Kompetenzen – robust + professioneller Text
-   - PDF Export fix: wartet auf Libraries, besseres Error-Logging, stabiler DOM-Klon
-   - PDF Tabelle: sehr gut links → ... → nicht genügend rechts, gefüllte Punkte
-   - Text: Arbeitszeugnis-Stil, Absätze, ohne Titelzitieren
+/* Überfachliche Kompetenzen – Stand gemäss Chat:
+   - Lokale Vendor-Libs: vendor/html2canvas.min.js, vendor/jspdf.umd.min.js
+   - PDF: html2canvas + jsPDF (robust) + Fallback Print
+   - Tabelle im PDF: sehr gut → gut → genügend → nicht genügend (links→rechts), gefüllter Punkt
+   - Text: professionell, pädagogisch fundiert; 2–4 warm, 5–6 sachlicher
+   - Feinjustier-Wörter farbig im Editor, PDF schwarz
 */
 
 const DEFAULT_PLACE = "Wädenswil";
 
-// UI-Order (farblogisch) und PDF-Order (gewünschte Reihenfolge)
-const LEVEL_UI = ["vv","g","ge","u"];          // ++, +, -, --
-const LEVEL_PDF = ["vv","g","ge","u"];         // sehr gut → ... → nicht genügend
+// Reihenfolge & Labels
+const LEVELS = ["vv","g","ge","u"]; // vv=sehr gut, g=gut, ge=genügend, u=nicht genügend
 const LEVEL_LABEL = { vv:"++", g:"+", ge:"-", u:"--" };
 const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" };
 
-// ===== Rasterdaten (wie in deiner bisherigen Version) =====
+// ===== Raster-Daten (derzeit wie in der letzten Version; erweiterbar mit farbigen Kriterien) =====
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
@@ -24,19 +25,19 @@ const DATA = [
           vv: { color: "blue",  points: [
             "Sitzt bei Beginn der Stunde am Platz",
             "Ist ruhig bei Beginn der Stunde",
-            "Bringt Material und HA immer vollständig"
+            "Bringt Material und Hausaufgaben immer vollständig"
           ]},
           g:  { color: "green", points: [
             "Sitzt bei Beginn der Stunde am Platz",
-            "Bringt Material und HA vollständig"
+            "Bringt Material und Hausaufgaben vollständig"
           ]},
           ge: { color: "orange",points: [
             "Ist bei Beginn der Stunde im Zimmer, aber noch nicht am Platz",
-            "Bringt Material und HA teilweise vollständig"
+            "Bringt Material und Hausaufgaben teilweise vollständig"
           ]},
           u:  { color: "red",   points: [
             "Kommt nach dem Läuten ins Zimmer",
-            "Bringt Material und HA regelmässig unvollständig"
+            "Bringt Material und Hausaufgaben regelmässig unvollständig"
           ]}
         }
       },
@@ -47,7 +48,6 @@ const DATA = [
           vv: { color: "blue", points: [
             "Stellt Fragen",
             "Sucht Lösungen",
-            "Sucht Wege",
             "Zeigt grosse Eigeninitiative"
           ]},
           g:  { color: "green",points: [
@@ -71,21 +71,21 @@ const DATA = [
           vv: { color: "blue", points: [
             "Arbeitet konzentriert",
             "Arbeitet ausdauernd",
-            "Beendet eigenständig die Arbeit"
+            "Beendet Aufgaben eigenständig"
           ]},
           g:  { color: "green",points: [
             "Arbeitet meistens konzentriert",
             "Arbeitet meistens ausdauernd",
-            "Beendet die Arbeit"
+            "Beendet Aufgaben"
           ]},
           ge: { color: "orange",points: [
             "Arbeitet teilweise konzentriert",
             "Lässt sich ablenken",
-            "Beendet die Arbeit teilweise"
+            "Beendet Aufgaben teilweise"
           ]},
           u:  { color: "red", points: [
             "Lässt sich bei der Arbeit ablenken",
-            "Beendet die Arbeit selten"
+            "Beendet Aufgaben selten"
           ]}
         }
       },
@@ -95,18 +95,18 @@ const DATA = [
         levels: {
           vv: { color: "blue", points: [
             "Arbeitet mündlich und schriftlich sorgfältig, zuverlässig und selbständig",
-            "Geht mit dem Material immer korrekt um"
+            "Geht mit dem Material korrekt um"
           ]},
           g:  { color: "green",points: [
-            "Arbeitet mündlich und schriftlich oft sorgfältig, zuverlässig und selbständig",
+            "Arbeitet oft sorgfältig, zuverlässig und selbständig",
             "Geht mit dem Material korrekt um"
           ]},
           ge: { color: "orange",points: [
-            "Arbeitet mündlich und schriftlich teilweise unsorgfältig, unzuverlässig und selten selbständig",
+            "Arbeitet teilweise unsorgfältig oder unzuverlässig",
             "Geht mit dem Material teilweise korrekt um"
           ]},
           u:  { color: "red", points: [
-            "Arbeitet mündlich und schriftlich unsorgfältig, unzuverlässig und selten selbständig",
+            "Arbeitet häufig unsorgfältig oder unzuverlässig",
             "Geht mit dem Material nicht korrekt um"
           ]}
         }
@@ -125,8 +125,8 @@ const DATA = [
             "Hilft anderen"
           ]},
           ge: { color: "orange",points: [
-            "Hat Schwierigkeiten, mit Andern zusammenzuarbeiten",
-            "Hilft anderen nur mit Aufforderung der LP."
+            "Hat Schwierigkeiten, mit anderen zusammenzuarbeiten",
+            "Hilft anderen nach Aufforderung"
           ]},
           u:  { color: "red", points: [
             "Stört die Zusammenarbeit in der Gruppe",
@@ -139,23 +139,23 @@ const DATA = [
         title: "Schätzt die eigene Leistungsfähigkeit realistisch ein",
         levels: {
           vv: { color: "blue", points: [
-            "Kennt seine Stärken sehr gut",
-            "Kennt seine Schwächen sehr gut",
-            "Setzt sich Ziele, die erfüllt werden können und herausfordern"
+            "Kennt Stärken sehr gut",
+            "Kennt Schwächen sehr gut",
+            "Setzt sich herausfordernde und erreichbare Ziele"
           ]},
           g:  { color: "green",points: [
-            "Kennt seine Stärken",
-            "Kennt seine Schwächen",
-            "Setzt sich selbst realistische Ziele"
+            "Kennt Stärken",
+            "Kennt Schwächen",
+            "Setzt sich realistische Ziele"
           ]},
           ge: { color: "orange",points: [
-            "Kennt seine Stärken teilweise",
-            "Kennt seine Schwächen teilweise",
+            "Kennt Stärken teilweise",
+            "Kennt Schwächen teilweise",
             "Braucht Hilfe, um realistische Ziele zu setzen"
           ]},
           u:  { color: "red", points: [
-            "Kennt seine Stärken nicht",
-            "Kennt seine Schwächen nicht",
+            "Kennt Stärken noch kaum",
+            "Kennt Schwächen noch kaum",
             "Kann sich kaum realistische Ziele setzen"
           ]}
         }
@@ -179,33 +179,33 @@ const DATA = [
           ]},
           ge: { color: "orange",points: [
             "Hält Regeln nach Aufforderung ein",
-            "Führt sein Ämtli bei Aufforderung aus"
+            "Führt Ämtli bei Aufforderung aus"
           ]},
           u:  { color: "red", points: [
-            "Hält Regeln nicht ein",
-            "Führt sein Ämtli mit Hilfe aus"
+            "Hält Regeln nicht zuverlässig ein",
+            "Führt Ämtli mit Unterstützung aus"
           ]}
         }
       },
       {
         id: "respekt",
-        title: "Begegnet den Lehrpersonen und Mitschülern respektvoll",
+        title: "Begegnet Lehrpersonen und Mitschülern respektvoll",
         levels: {
           vv: { color: "blue", points: [
-            "Begegnet seiner LP äusserst respektvoll",
-            "Begegnet seinen Mitschülern respektvoll"
+            "Begegnet Erwachsenen respektvoll",
+            "Begegnet Mitschülerinnen und Mitschülern respektvoll"
           ]},
           g:  { color: "green",points: [
-            "Begegnet seiner LP grundsätzlich respektvoll",
-            "Begegnet seinen Mitschülern grundsätzlich respektvoll"
+            "Begegnet Erwachsenen grundsätzlich respektvoll",
+            "Begegnet Mitschülerinnen und Mitschülern grundsätzlich respektvoll"
           ]},
           ge: { color: "orange",points: [
-            "Begegnet seiner LP teilweise respektvoll",
-            "Begegnet seinen Mitschülern teilweise respektvoll"
+            "Begegnet Erwachsenen teilweise respektvoll",
+            "Begegnet Mitschülerinnen und Mitschülern teilweise respektvoll"
           ]},
           u:  { color: "red", points: [
-            "Begegnet seiner LP selten respektvoll",
-            "Begegnet seinen Mitschülern selten respektvoll"
+            "Begegnet Erwachsenen selten respektvoll",
+            "Begegnet Mitschülerinnen und Mitschülern selten respektvoll"
           ]}
         }
       }
@@ -213,7 +213,7 @@ const DATA = [
   }
 ];
 
-// ===== Helpers =====
+// ===== DOM =====
 const el = (id) => document.getElementById(id);
 
 function toISODate(d){
@@ -225,41 +225,51 @@ function formatDateCH(iso){
   const [y,m,d] = iso.split("-");
   return `${d}.${m}.${y}`;
 }
+function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
 function pronouns(g){
   return (g === "w")
     ? { subj:"sie", obj:"sie", poss:"ihr", dat:"ihr" }
     : { subj:"er", obj:"ihn", poss:"sein", dat:"ihm" };
 }
-function mod(w){ return `<span class="mod">${w}</span>`; }
-function joined(arr){
-  const a = arr.filter(Boolean);
-  if(a.length === 0) return "";
-  if(a.length === 1) return a[0];
-  if(a.length === 2) return `${a[0]} und ${a[1]}`;
-  return `${a.slice(0,-1).join(", ")} und ${a[a.length-1]}`;
+
+// Klasse → Zyklus (2–4 warm, 5–6 sachlicher)
+function getCycle(className){
+  const m = (className || "").match(/\d+/);
+  if(!m) return "low";
+  const k = parseInt(m[0], 10);
+  return (k <= 4) ? "low" : "high";
 }
 
+// Feinjustier-Markierung
+function mod(w){ return `<span class="mod">${w}</span>`; }
+
+// Pädagogische Weichmacher
 function weich(level){
-  if(level === "vv") return mod("durchwegs");
-  if(level === "g")  return mod("meist");
-  if(level === "ge") return mod("manchmal");
+  if(level==="vv") return mod("durchwegs");
+  if(level==="g")  return mod("meist");
+  if(level==="ge") return mod("teilweise");
   return mod("selten");
 }
-function qual(level){
-  if(level === "vv") return mod("sehr sicher");
-  if(level === "g")  return mod("sicher");
-  if(level === "ge") return mod("noch nicht durchgehend sicher");
-  return mod("mit deutlicher Unterstützung");
+function sicher(level){
+  if(level==="vv") return mod("sehr sicher");
+  if(level==="g")  return mod("sicher");
+  if(level==="ge") return mod("noch nicht durchgehend sicher");
+  return mod("mit Unterstützung");
+}
+function kritisch(level){
+  // für kritische Stellen (ohne verletzend zu sein)
+  if(level==="vv" || level==="g") return "";
+  if(level==="ge") return ` ${mod("Dabei braucht")} ${mod("es noch")} gelegentlich eine Erinnerung oder Strukturierung.`;
+  return ` ${mod("Hier braucht")} ${mod("es deutlich")} mehr Begleitung, damit Ziele zuverlässig erreicht werden.`;
 }
 
 // ===== State (nur RAM) =====
-const state = {
-  checks: {},   // checks[itemId][levelKey][idx] = true/false
-  overall: {},  // overall[itemId] = "auto" | "vv" | "g" | "ge" | "u"
-};
+const state = { checks:{}, overall:{} };
+
 function ensureItemState(item){
   if(!state.checks[item.id]) state.checks[item.id] = {};
-  for(const lk of LEVEL_UI){
+  for(const lk of LEVELS){
     if(!state.checks[item.id][lk]) state.checks[item.id][lk] = {};
   }
   if(!state.overall[item.id]) state.overall[item.id] = "auto";
@@ -305,7 +315,7 @@ function buildRaster(){
       const grid = document.createElement("div");
       grid.className = "levelGrid";
 
-      LEVEL_UI.forEach(lk => {
+      LEVELS.forEach(lk => {
         const col = document.createElement("div");
         col.className = `levelCol levelCol--${item.levels[lk].color}`;
 
@@ -343,20 +353,18 @@ function buildRaster(){
     root.appendChild(wrap);
   });
 
-  // Checkbox events
+  // Events: Checkboxes
   root.querySelectorAll('input[type="checkbox"][data-item]').forEach(cb => {
     cb.addEventListener("change", (e) => {
       const itemId = e.target.dataset.item;
       const lk = e.target.dataset.level;
       const idx = Number(e.target.dataset.idx);
-      if(!state.checks[itemId]) state.checks[itemId] = {};
-      if(!state.checks[itemId][lk]) state.checks[itemId][lk] = {};
       state.checks[itemId][lk][idx] = e.target.checked;
       if(!editorTouched) generateText();
     });
   });
 
-  // Overall override
+  // Events: Override
   root.querySelectorAll('select[data-overall]').forEach(sel => {
     sel.value = state.overall[sel.dataset.overall] || "auto";
     sel.addEventListener("change", (e) => {
@@ -372,22 +380,18 @@ function computeOverallLevel(item){
   if(forced && forced !== "auto") return forced;
 
   const counts = {};
-  for(const lk of LEVEL_UI){
+  for(const lk of LEVELS){
     const m = state.checks[item.id][lk] || {};
     counts[lk] = Object.values(m).filter(Boolean).length;
   }
-
   const total = Object.values(counts).reduce((a,b)=>a+b,0);
   if(total === 0) return "g";
 
-  const sorted = LEVEL_UI
-    .map(lk => ({lk, c: counts[lk]}))
-    .sort((a,b) => b.c - a.c);
-
+  const sorted = LEVELS.map(lk => ({lk, c: counts[lk]})).sort((a,b)=>b.c-a.c);
   const top = sorted[0];
   const tie = sorted.filter(x => x.c === top.c);
   if(tie.length > 1){
-    const pref = ["g","vv","ge","u"]; // praxisnah
+    const pref = ["g","vv","ge","u"];
     for(const p of pref){
       if(tie.some(t => t.lk === p)) return p;
     }
@@ -397,140 +401,63 @@ function computeOverallLevel(item){
 
 function currentSelections(){
   const out = {};
-  DATA.forEach(g => g.items.forEach(item => {
-    ensureItemState(item);
-    out[item.id] = computeOverallLevel(item);
-  }));
+  DATA.forEach(g => g.items.forEach(item => out[item.id] = computeOverallLevel(item)));
   return out;
 }
 
-function collectSelectedPoints(item){
-  const selected = [];
-  for(const lk of LEVEL_UI){
-    const pts = item.levels[lk].points;
-    const map = state.checks[item.id][lk] || {};
-    pts.forEach((p, idx) => { if(map[idx]) selected.push(p); });
-  }
-  return selected;
-}
+// ===== Textgenerator (2–4 warm, 5–6 sachlicher) =====
+function buildProfessionalText(ctx, levels){
+  const { name, P, cycle } = ctx;
+  const L = (id) => levels[id] || "g";
 
-// ===== Professioneller Text (Absätze, kein Titelzitieren) =====
-function buildProfessionalText(ctx, levelsById){
-  const { name, P } = ctx;
+  const introLow =
+`${name} zeigt in den überfachlichen Kompetenzen insgesamt ein ${mod("stimmiges")} Bild. Die folgenden Beobachtungen beschreiben, wie ${P.subj} den Schulalltag erlebt und bewältigt.`;
 
-  // Helper: hole Item + Level
-  const itemById = {};
-  DATA.forEach(g => g.items.forEach(it => itemById[it.id] = it));
+  const introHigh =
+`${name} zeigt in den überfachlichen Kompetenzen insgesamt ein ${mod("differenziertes")} Profil. Die folgenden Ausführungen geben Auskunft über das Arbeits-, Lern- und Sozialverhalten im Schulalltag.`;
 
-  // Kurzfunktionen
-  const lvl = (id) => levelsById[id] || "g";
-  const pts = (id) => collectSelectedPoints(itemById[id]);
+  const textLow = `
+${cap(P.subj)} erscheint zu Unterrichtsbeginn ${weich(L("puenktlich"))} startbereit und organisiert. Material und Hausaufgaben sind ${weich(L("puenktlich"))} vollständig vorhanden.${kritisch(L("puenktlich"))}
 
-  // Bausteine pro Dimension (ohne “im Bereich …”)
-  function punctuality(){
-    const L = lvl("puenktlich");
-    const list = pts("puenktlich");
-    const hasLate = list.some(x => x.toLowerCase().includes("nach dem läuten"));
-    const hasHA = list.some(x => x.toLowerCase().includes("ha"));
+Im Unterricht beteiligt sich ${name} ${weich(L("aktiv"))} aktiv. ${cap(P.subj)} zeigt Interesse am Lernstoff und bringt sich mit eigenen Ideen ein.${kritisch(L("aktiv"))}
 
-    if(hasLate){
-      return `${name} erscheint ${weich(L)} nicht immer pünktlich und ist zu Unterrichtsbeginn ${qual(L)} startbereit.`;
-    }
-    let s = `${name} ist zu Unterrichtsbeginn ${weich(L)} startbereit und erscheint ${qual(L)} im schulischen Alltag.`;
-    if(hasHA) s += ` Material und Hausaufgaben sind ${weich(L)} vollständig vorhanden.`;
-    return s;
-  }
+Bei der Bearbeitung von Aufgaben arbeitet ${name} ${weich(L("konzentriert"))} konzentriert und bleibt ${sicher(L("konzentriert"))} bei der Sache. In längeren Arbeitsphasen hilft ${P.subj} ${weich(L("konzentriert"))} eine kurze Erinnerung, um den Fokus zu halten.${kritisch(L("konzentriert"))}
 
-  function participation(){
-    const L = lvl("aktiv");
-    const list = pts("aktiv");
-    const hasQ = list.some(x => x.toLowerCase().includes("fragen"));
-    const hasInit = list.some(x => x.toLowerCase().includes("eigeninitiative"));
-    let s = `${name} beteiligt sich ${weich(L)} aktiv am Unterricht.`;
-    if(hasQ) s += ` ${P.subj.charAt(0).toUpperCase()+P.subj.slice(1)} stellt ${weich(L)} Fragen und bringt eigene Gedanken ein.`;
-    if(hasInit) s += ` Eigeninitiative zeigt ${P.subj} ${weich(L)}.`;
-    return s;
-  }
+Arbeiten führt ${name} ${weich(L("sorgfalt"))} sorgfältig aus. Die Ergebnisse zeigen, dass ${P.subj} ${sicher(L("sorgfalt"))} und zuverlässig arbeitet.${kritisch(L("sorgfalt"))}
 
-  function focus(){
-    const L = lvl("konzentriert");
-    const list = pts("konzentriert");
-    const hasDistract = list.some(x => x.toLowerCase().includes("ablenk"));
-    let s = `${name} arbeitet ${weich(L)} konzentriert und bleibt ${qual(L)} an Aufgaben dran.`;
-    if(hasDistract) s += ` In längeren Arbeitsphasen lässt sich ${P.subj} ${weich(L)} ablenken.`;
-    s += ` Aufgaben werden ${weich(L)} abgeschlossen.`;
-    return s;
-  }
+${name} arbeitet ${weich(L("zusammenarbeit"))} kooperativ mit anderen zusammen und kann sich in Gruppen einbringen. ${cap(P.subj)} ist ${weich(L("zusammenarbeit"))} bereit, Verantwortung zu übernehmen.${kritisch(L("zusammenarbeit"))}
 
-  function care(){
-    const L = lvl("sorgfalt");
-    const list = pts("sorgfalt");
-    const matOk = list.some(x => x.toLowerCase().includes("material") && x.toLowerCase().includes("korrekt"));
-    let s = `${name} erledigt Arbeiten ${weich(L)} sorgfältig und ${qual(L)} zuverlässig.`;
-    if(matOk) s += ` Der Umgang mit Material gelingt ${P.subj} ${weich(L)} korrekt.`;
-    return s;
-  }
+Regeln des schulischen Zusammenlebens hält ${name} ${weich(L("regeln"))} ein. Aufgaben und Ämtli erledigt ${P.subj} ${sicher(L("regeln"))}.${kritisch(L("regeln"))}
 
-  function cooperation(){
-    const L = lvl("zusammenarbeit");
-    const list = pts("zusammenarbeit");
-    const help = list.some(x => x.toLowerCase().includes("hilft"));
-    const resp = list.some(x => x.toLowerCase().includes("verantwortung"));
-    let s = `${name} kann ${weich(L)} konstruktiv mit anderen zusammenarbeiten.`;
-    if(help) s += ` ${P.subj.charAt(0).toUpperCase()+P.subj.slice(1)} unterstützt Mitschülerinnen und Mitschüler ${weich(L)}.`;
-    if(resp) s += ` Verantwortung übernimmt ${P.subj} ${weich(L)}.`;
-    return s;
-  }
+Im Umgang mit anderen begegnet ${name} seinen Mitmenschen ${weich(L("respekt"))} respektvoll. ${cap(P.subj)} zeigt dabei ein wertschätzendes Verhalten gegenüber Erwachsenen und Gleichaltrigen.${kritisch(L("respekt"))}
 
-  function selfReflection(){
-    const L = lvl("selbsteinschaetzung");
-    const list = pts("selbsteinschaetzung");
-    const strengths = list.some(x => x.toLowerCase().includes("stärken"));
-    const weaknesses = list.some(x => x.toLowerCase().includes("schwächen"));
-    const goals = list.some(x => x.toLowerCase().includes("ziele"));
-    let s = `${name} schätzt die eigene Leistungsfähigkeit ${weich(L)} realistisch ein.`;
-    if(strengths || weaknesses){
-      s += ` ${P.subj.charAt(0).toUpperCase()+P.subj.slice(1)} kann Stärken und Entwicklungspunkte ${weich(L)} benennen.`;
-    }
-    if(goals){
-      s += ` Ziele setzt sich ${P.subj} ${weich(L)} passend und erreichbar.`;
-    }
-    return s;
-  }
+${name} schätzt die eigene Leistungsfähigkeit ${weich(L("selbsteinschaetzung"))} realistisch ein. ${cap(P.subj)} kann eigene Stärken erkennen und ist bereit, an Entwicklungspunkten zu arbeiten. Ziele setzt sich ${P.subj} ${sicher(L("selbsteinschaetzung"))} und arbeitet daran, diese zu erreichen.${kritisch(L("selbsteinschaetzung"))}
+`.trim();
 
-  function rules(){
-    const L = lvl("regeln");
-    const list = pts("regeln");
-    const chores = list.some(x => x.toLowerCase().includes("ämt"));
-    let s = `${name} hält Regeln des schulischen Zusammenlebens ${weich(L)} ein.`;
-    if(chores) s += ` Aufgaben und Ämtli erledigt ${P.subj} ${weich(L)} zuverlässig.`;
-    return s;
-  }
+  const textHigh = `
+${name} erscheint zu Unterrichtsbeginn ${weich(L("puenktlich"))} startbereit und organisiert. Material und Hausaufgaben sind ${weich(L("puenktlich"))} vollständig vorhanden.${kritisch(L("puenktlich"))}
 
-  function respect(){
-    const L = lvl("respekt");
-    const list = pts("respekt");
-    const lp = list.some(x => x.toLowerCase().includes("lp"));
-    const ms = list.some(x => x.toLowerCase().includes("mitschüler"));
-    let s = `${name} begegnet anderen ${weich(L)} respektvoll.`;
-    if(lp) s += ` Gegenüber der Lehrperson zeigt ${P.subj} ${weich(L)} einen angemessenen Umgang.`;
-    if(ms) s += ` Im Kontakt mit Mitschülerinnen und Mitschülern verhält sich ${P.subj} ${weich(L)} fair und kooperativ.`;
-    return s;
-  }
+${cap(P.subj)} beteiligt sich ${weich(L("aktiv"))} am Unterricht und bringt eigene Beiträge ein. Selbständigkeit und Initiative zeigt ${P.subj} ${sicher(L("aktiv"))}.${kritisch(L("aktiv"))}
 
-  // Absätze
-  const p1 = `${punctuality()} ${participation()} ${focus()} ${care()}`;
-  const p2 = `${cooperation()} ${rules()} ${respect()}`;
-  const p3 = `${selfReflection()}`;
+Bei der Bearbeitung von Aufgaben arbeitet ${name} ${weich(L("konzentriert"))} konzentriert und bleibt ${sicher(L("konzentriert"))} bei der Sache. In längeren Arbeitsphasen zeigt ${P.subj} ${weich(L("konzentriert"))} einen erhöhten Bedarf an Strukturierung und Priorisierung.${kritisch(L("konzentriert"))}
 
-  // Intro nur kurz
-  const intro = `${name} zeigt in den überfachlichen Kompetenzen insgesamt ein ${mod("stimmiges")} Bild.`;
+Arbeiten werden von ${name} ${weich(L("sorgfalt"))} sorgfältig und zuverlässig ausgeführt. Die Ergebnisse entsprechen ${sicher(L("sorgfalt"))} den Anforderungen.${kritisch(L("sorgfalt"))}
 
-  return `${intro}\n\n${p1}\n\n${p2}\n\n${p3}`;
+In Gruppen arbeitet ${name} ${weich(L("zusammenarbeit"))} kooperativ mit anderen zusammen und trägt zu einem funktionierenden Arbeitsprozess bei.${kritisch(L("zusammenarbeit"))}
+
+Regeln des schulischen Zusammenlebens hält ${name} ${weich(L("regeln"))} ein. Aufgaben und vereinbarte Verantwortlichkeiten werden ${sicher(L("regeln"))} wahrgenommen.${kritisch(L("regeln"))}
+
+Im Umgang mit anderen begegnet ${name} seinen Mitmenschen ${weich(L("respekt"))} respektvoll. Das Verhalten gegenüber Erwachsenen und Gleichaltrigen ist ${sicher(L("respekt"))}.${kritisch(L("respekt"))}
+
+${name} schätzt die eigene Leistungsfähigkeit ${weich(L("selbsteinschaetzung"))} realistisch ein und kann Stärken sowie Entwicklungsfelder benennen. Ziele werden ${sicher(L("selbsteinschaetzung"))} gesetzt und verfolgt.${kritisch(L("selbsteinschaetzung"))}
+`.trim();
+
+  return `${(cycle==="low") ? introLow : introHigh}\n\n${(cycle==="low") ? textLow : textHigh}`;
 }
 
 // ===== Editor =====
 let editorTouched = false;
+
 function setEditorHTML(html){ el("reportEditor").innerHTML = html; }
 function getEditorPlainText(){
   const tmp = document.createElement("div");
@@ -541,42 +468,16 @@ function getEditorPlainText(){
 function generateText(){
   const name = el("studentName").value.trim() || "Das Kind";
   const P = pronouns(el("gender").value);
+  const cycle = getCycle(el("className").value);
   const levels = currentSelections();
-  const text = buildProfessionalText({ name, P }, levels);
 
-  // In HTML übernehmen, Zeilenumbrüche als <br>
-  const html = text.split("\n").map(line => line === "" ? "<br>" : line).join("<br>");
+  const text = buildProfessionalText({ name, P, cycle }, levels);
+  const html = text.split("\n").map(l => l === "" ? "<br>" : l).join("<br>");
   setEditorHTML(html);
 }
 
-// ===== Defaults / Buttons =====
-function fillDefaults(){
-  el("place").value = DEFAULT_PLACE;
-  el("date").value = toISODate(new Date());
-}
-function resetStandard(){
-  DATA.forEach(g => g.items.forEach(item => {
-    ensureItemState(item);
-    state.overall[item.id] = "auto";
-    for(const lk of LEVEL_UI){
-      state.checks[item.id][lk] = {};
-    }
-  }));
-  editorTouched = false;
-  buildRaster();
-  generateText();
-}
-function regenerateOverwrite(){
-  editorTouched = false;
-  generateText();
-}
-async function copyPlain(){
-  await navigator.clipboard.writeText(getEditorPlainText());
-}
-
-// ===== PDF Tabellen =====
+// ===== Print füllen =====
 function buildPrintTables(selections){
-  // Header: sehr gut → gut → genügend → nicht genügend
   const headerRight = `
     <div class="zHeaderRight">
       <div class="rot">${LEVEL_TEXT["vv"]}</div>
@@ -588,33 +489,29 @@ function buildPrintTables(selections){
 
   function rowHTML(item){
     const chosen = selections[item.id] || "g";
-    const rightMarks = LEVEL_PDF.map(lk => {
+    const marks = LEVELS.map(lk => {
       const on = (lk === chosen) ? "mark mark--on" : "mark";
       return `<div class="${on}"></div>`;
     }).join("");
-    return `
-      <div class="zRowLeft">${item.title}</div>
-      <div class="zRowRight">${rightMarks}</div>
-    `;
+    return `<div class="zRowLeft">${item.title}</div><div class="zRowRight">${marks}</div>`;
   }
 
-  function makeTable(group){
+  function table(group){
     const top = `<div></div>${headerRight}`;
     const rows = group.items.map(rowHTML).join("");
     return top + rows;
   }
 
-  el("printTableArbeits").innerHTML = makeTable(DATA[0]);
-  el("printTableSozial").innerHTML  = makeTable(DATA[1]);
+  el("printTableArbeits").innerHTML = table(DATA[0]);
+  el("printTableSozial").innerHTML  = table(DATA[1]);
 }
 
-// ===== Print füllen =====
 function buildPrint(){
   const studentName = el("studentName").value.trim() || "—";
-  const className = el("className").value.trim() || "—";
+  const className   = el("className").value.trim()   || "—";
   const teacherName = el("teacherName").value.trim() || "—";
-  const place = el("place").value.trim() || "—";
-  const dateCH = formatDateCH(el("date").value) || "—";
+  const place       = el("place").value.trim()       || "—";
+  const dateCH      = formatDateCH(el("date").value) || "—";
 
   el("printHead").textContent =
     `Name: ${studentName} · Klasse: ${className} · Ort/Datum: ${place}, ${dateCH} · Lehrperson: ${teacherName}`;
@@ -625,7 +522,6 @@ function buildPrint(){
   const selections = currentSelections();
   buildPrintTables(selections);
 
-  // PDF: Plaintext (schwarz)
   el("printText").textContent = getEditorPlainText();
 
   const remarks = (el("teacherRemarks").value || "").trim();
@@ -642,63 +538,38 @@ function buildPrint(){
   }
 }
 
-// ===== PDF Export FIX (robust) =====
+// ===== PDF Export (robust) + Fallback Print =====
 function getJsPDF(){
-  // html2pdf.bundle kann jsPDF unter window.jspdf.jsPDF bereitstellen
-  if(window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  if(window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF; // UMD
   if(window.jsPDF) return window.jsPDF;
   return null;
 }
-
-async function waitForLibs(timeoutMs = 2500){
-  const start = performance.now();
-  while(performance.now() - start < timeoutMs){
-    if(window.html2canvas && getJsPDF()) return true;
-    await new Promise(r => setTimeout(r, 50));
-  }
-  return false;
+function canUseRealPdf(){
+  return !!(window.html2canvas && getJsPDF());
 }
 
-async function exportPDF(){
+async function exportRealPDF(){
   buildPrint();
 
-  // Libraries prüfen (häufige Ursache für deinen Screenshot-Fehler)
-  const ok = await waitForLibs();
-  if(!ok){
-    alert("PDF-Fehler: html2canvas/jsPDF nicht geladen. Prüfe Internet/Adblocker/CSP.");
-    return;
-  }
-
   const sourcePage = document.querySelector("#printArea .printPage");
-  if(!sourcePage){
-    alert("PDF-Fehler: Druckbereich nicht gefunden.");
-    return;
-  }
+  if(!sourcePage) throw new Error("Druckbereich nicht gefunden.");
 
-  // Clone in sichtbaren DOM setzen (stabil)
+  // Stabiler Clone (verhindert „weisses PDF“ durch Offscreen/Styles)
   const clone = sourcePage.cloneNode(true);
 
   const staging = document.createElement("div");
-  staging.id = "pdf-staging";
   staging.style.position = "fixed";
   staging.style.left = "0";
   staging.style.top = "0";
   staging.style.zIndex = "999999";
   staging.style.background = "#fff";
   staging.style.pointerEvents = "none";
-  staging.style.opacity = "1";
-  staging.style.visibility = "visible";
-
-  // Breite in px (robuster als mm bei manchen Browsern)
-  const rect = sourcePage.getBoundingClientRect();
-  staging.style.width = `${Math.ceil(rect.width)}px`;
-
+  staging.style.padding = "0";
   staging.appendChild(clone);
   document.body.appendChild(staging);
 
-  // Layout + Fonts abwarten
   await new Promise(r => requestAnimationFrame(r));
-  await new Promise(r => setTimeout(r, 120));
+  await new Promise(r => setTimeout(r, 140));
   if(document.fonts && document.fonts.ready){
     try{ await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))]); } catch {}
   }
@@ -713,12 +584,13 @@ async function exportPDF(){
     });
 
     const jsPDF = getJsPDF();
-    if(!jsPDF) throw new Error("jsPDF nicht verfügbar (getJsPDF).");
+    if(!jsPDF) throw new Error("jsPDF nicht verfügbar.");
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.98);
     const pdf = new jsPDF("p", "mm", "a4");
 
+    const imgData = canvas.toDataURL("image/jpeg", 0.98);
     const pageW = 210, pageH = 297;
+
     const imgW = pageW;
     const imgH = (canvas.height * imgW) / canvas.width;
 
@@ -741,13 +613,77 @@ async function exportPDF(){
 
     pdf.save(filename);
 
-  } catch(err){
-    console.error("PDF-Export-Fehler:", err);
-    alert(`PDF-Fehler: ${err?.message ? err.message : String(err)}\n\nTipp: Konsole (F12) öffnen → Fehler unter 'Console' anschauen.`);
   } finally {
-    const s = document.getElementById("pdf-staging");
-    if(s) document.body.removeChild(s);
+    document.body.removeChild(staging);
   }
+}
+
+function openPrintView(){
+  buildPrint();
+  const printHTML = document.querySelector("#printArea").innerHTML;
+
+  const base = location.href.replace(/[^/]+$/, "");
+  const cssHref = base + "styles.css";
+
+  const w = window.open("", "_blank");
+  w.document.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Überfachliche Kompetenzen</title>
+        <link rel="stylesheet" href="${cssHref}">
+        <style>
+          body{ margin:0; background:#fff; }
+          .printArea--offscreen{ position:static !important; left:auto !important; top:auto !important; }
+        </style>
+      </head>
+      <body onload="window.print()">
+        ${printHTML}
+      </body>
+    </html>
+  `);
+  w.document.close();
+}
+
+async function handlePdfClick(){
+  if(canUseRealPdf()){
+    try{
+      await exportRealPDF();
+      return;
+    } catch(err){
+      console.error("PDF-Export fehlgeschlagen → Fallback Print", err);
+    }
+  }
+  openPrintView();
+}
+
+// ===== Defaults / Buttons =====
+function fillDefaults(){
+  el("place").value = DEFAULT_PLACE;
+  el("date").value = toISODate(new Date());
+}
+
+function resetStandard(){
+  DATA.forEach(g => g.items.forEach(item => {
+    ensureItemState(item);
+    state.overall[item.id] = "auto";
+    for(const lk of LEVELS){
+      state.checks[item.id][lk] = {};
+    }
+  }));
+  editorTouched = false;
+  buildRaster();
+  generateText();
+}
+
+function regenerateOverwrite(){
+  editorTouched = false;
+  generateText();
+}
+
+async function copyPlain(){
+  await navigator.clipboard.writeText(getEditorPlainText());
 }
 
 // ===== Diktat =====
@@ -758,6 +694,7 @@ function makeDictationEditable(buttonEl, targetEl){
     buttonEl.title = "Diktierfunktion wird von diesem Browser nicht unterstützt.";
     return;
   }
+
   const rec = new SR();
   rec.lang = "de-CH";
   rec.interimResults = false;
@@ -791,20 +728,17 @@ function makeDictationEditable(buttonEl, targetEl){
     }
   };
 
-  function start(){
-    if(running) return;
-    running = true;
-    buttonEl.textContent = "⏹️ Stopp";
-    rec.start();
-  }
-  function stop(){
-    if(!running) return;
-    running = false;
-    buttonEl.textContent = "🎤 Diktat";
-    rec.stop();
-  }
-
-  buttonEl.addEventListener("click", () => running ? stop() : start());
+  buttonEl.addEventListener("click", () => {
+    if(running){
+      running = false;
+      buttonEl.textContent = "🎤 Diktat";
+      rec.stop();
+    } else {
+      running = true;
+      buttonEl.textContent = "⏹️ Stopp";
+      rec.start();
+    }
+  });
 }
 
 function makeDictationTextarea(buttonEl, textarea){
@@ -814,6 +748,7 @@ function makeDictationTextarea(buttonEl, textarea){
     buttonEl.title = "Diktierfunktion wird von diesem Browser nicht unterstützt.";
     return;
   }
+
   const rec = new SR();
   rec.lang = "de-CH";
   rec.interimResults = false;
@@ -838,36 +773,33 @@ function makeDictationTextarea(buttonEl, textarea){
     if(out && out.trim()) insertAtCursor(out.trim() + " ");
   };
 
-  function start(){
-    if(running) return;
-    running = true;
-    buttonEl.textContent = "⏹️ Stopp";
-    rec.start();
-  }
-  function stop(){
-    if(!running) return;
-    running = false;
-    buttonEl.textContent = "🎤 Diktat";
-    rec.stop();
-  }
-
-  buttonEl.addEventListener("click", () => running ? stop() : start());
+  buttonEl.addEventListener("click", () => {
+    if(running){
+      running = false;
+      buttonEl.textContent = "🎤 Diktat";
+      rec.stop();
+    } else {
+      running = true;
+      buttonEl.textContent = "⏹️ Stopp";
+      rec.start();
+    }
+  });
 }
 
 // ===== Init =====
+DATA.forEach(g => g.items.forEach(ensureItemState));
 buildRaster();
 fillDefaults();
 generateText();
 
 el("btnReset").addEventListener("click", resetStandard);
 el("btnRegen").addEventListener("click", regenerateOverwrite);
-el("btnPdf").addEventListener("click", exportPDF);
+el("btnPdf").addEventListener("click", handlePdfClick);
 el("btnCopy").addEventListener("click", copyPlain);
 
 el("reportEditor").addEventListener("input", () => { editorTouched = true; });
 
-// Auto-Text: Name/Geschlecht beeinflusst Formulierungen
-["studentName","gender"].forEach(id => {
+["studentName","className","gender"].forEach(id => {
   el(id).addEventListener("input", () => { if(!editorTouched) generateText(); });
 });
 el("gender").addEventListener("change", () => { if(!editorTouched) generateText(); });
