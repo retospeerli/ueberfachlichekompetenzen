@@ -6,9 +6,9 @@
   <title>Überfachliche Kompetenzen</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- LOKAL statt CDN -->
-  <script src="vendor/html2canvas.min.js"></script>
-  <script src="vendor/jspdf.umd.min.js"></script>
+  <!-- LOKAL: damit es auch im Schulnetz funktioniert -->
+  <script defer src="vendor/html2canvas.min.js"></script>
+  <script defer src="vendor/jspdf.umd.min.js"></script>
 </head>
 
 <body>
@@ -39,7 +39,7 @@
 
         <label class="field">
           <span>Klasse</span>
-          <input id="className" type="text" autocomplete="off" placeholder="z. B. 3a" />
+          <input id="className" type="text" autocomplete="off" placeholder="z. B. 3a / 6b" />
         </label>
 
         <label class="field">
@@ -66,12 +66,18 @@
         </label>
       </div>
 
-      <p class="hint">Farbig markierte Wörter im Text sind „Feinjustier-Wörter“. In der PDF ist alles schwarz.</p>
+      <p class="hint">
+        Farbig markierte Wörter im Text sind „Feinjustier-Wörter“ und können schnell ersetzt werden.
+        In der PDF ist alles schwarz.
+      </p>
     </section>
 
     <section class="card">
-      <h2>Beurteilungsraster (detailliert)</h2>
-      <p class="muted">Kreuze Beobachtungen an. Die App berechnet daraus eine Gesamtstufe pro Kriterium (Auto), die du bei Bedarf manuell überschreiben kannst.</p>
+      <h2>Beurteilungsraster</h2>
+      <p class="muted">
+        Kreuze Beobachtungen an. Die App berechnet daraus eine Gesamtstufe pro Kriterium (Auto).
+        Du kannst die Gesamtstufe auch manuell überschreiben.
+      </p>
       <div id="rasterRoot" class="raster"></div>
     </section>
 
@@ -84,7 +90,11 @@
         </div>
       </div>
 
-      <div class="muted small">Der Text ist direkt editierbar (mit Rechtschreibprüfung des Browsers).</div>
+      <div class="muted small">
+        Der Text ist direkt editierbar (Browser-Rechtschreibung aktiv). Sobald du manuell editierst,
+        wird der Text nicht mehr automatisch überschrieben.
+      </div>
+
       <div id="reportEditor" class="editor" contenteditable="true" spellcheck="true"></div>
 
       <div class="row row--between row--center mt">
