@@ -129,15 +129,11 @@
         <ol class="overlay__steps">
           <li><strong>Prompt + Text</strong> wurden kopiert. Wechsle zu <strong>Copilot</strong>.</li>
           <li>Füge alles mit <strong>Ctrl+V</strong> ein und sende ab.</li>
-          <li>Copilot soll <strong>zwei Blöcke</strong> liefern: <code>AUSWERTUNG:</code> und <code>KOMMENTAR:</code></li>
-          <li>Kopiere den <strong>AUSWERTUNG</strong>-Block zurück und ersetze damit den Text im Editor.</li>
+          <li>Copilot soll <strong>zwei Blöcke</strong> liefern: <code>AUSWERTUNG:</code> und <code>KOMMENTAR:</code>.</li>
+          <li>Kopiere den <strong>AUSWERTUNG</strong>-Block zurück und ersetze damit den Text im Editor (<strong>Ctrl+A</strong>, dann einfügen).</li>
           <li>Kopiere den <strong>KOMMENTAR</strong>-Block zurück und setze ihn in „Bemerkungen Lehrperson“.</li>
-          <li>Danach: <strong>PDF erstellen</strong>.</li>
+          <li>Dann: <strong>PDF erstellen</strong>.</li>
         </ol>
-
-        <div class="overlay__hint">
-          Tipp: Wenn du zuerst den bestehenden Text im Editor markierst (<strong>Ctrl+A</strong>), überschreibst du ihn sauber mit der Copilot-Version.
-        </div>
 
         <div class="overlay__actions">
           <button id="btnOverlayCopyAgain" class="btn" type="button">Prompt + Text nochmals kopieren</button>
@@ -167,7 +163,6 @@
           <div id="printTableSozial" class="zeugnisTable"></div>
         </div>
 
-        <!-- optional Details -->
         <div id="printDetailsWrap" class="zeugnisSection" hidden>
           <div class="zeugnisSectionHead">Bewertungskriterien (Details)</div>
           <div id="printDetails" class="detailTable"></div>
