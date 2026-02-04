@@ -1,3 +1,4 @@
+/* styles.css — helles Design, dunkle Schrift */
 :root{
   --bg: #f6f7fb;
   --card: #ffffff;
@@ -18,15 +19,11 @@
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 *{ box-sizing:border-box; }
-body{
-  margin:0;
-  background: var(--bg);
-  color: var(--ink);
-}
+body{ margin:0; background:var(--bg); color:var(--ink); }
 
 .topbar{
   position:sticky; top:0; z-index:10;
-  background: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.92);
   backdrop-filter: blur(10px);
   border-bottom:1px solid var(--line);
 }
@@ -51,7 +48,7 @@ body{
   gap:16px;
 }
 .card{
-  background: var(--card);
+  background:var(--card);
   border:1px solid var(--line);
   border-radius:16px;
   padding:16px;
@@ -72,7 +69,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 .field span{ display:block; color:var(--muted); font-size:.92rem; margin:0 0 6px 0; }
 .field input, .field select{
   width:100%;
-  background: #fff;
+  background:#fff;
   border:1px solid var(--line);
   color:var(--ink);
   padding:10px;
@@ -86,7 +83,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 
 .actions{ display:flex; gap:10px; flex-wrap:wrap; }
 .btn{
-  background: #fff;
+  background:#fff;
   border:1px solid var(--line);
   color:var(--ink);
   padding:10px 12px;
@@ -95,11 +92,11 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   font-weight:800;
 }
 .btn--primary{
-  background: var(--primary);
+  background:var(--primary);
   border-color: rgba(37,99,235,.75);
-  color: var(--primary-ink);
+  color:var(--primary-ink);
 }
-.btn--ghost{ background: transparent; }
+.btn--ghost{ background:transparent; }
 
 .row{ display:flex; }
 .row--between{ justify-content:space-between; }
@@ -112,16 +109,14 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   min-height: 260px;
   border-radius:14px;
   border:1px solid var(--line);
-  background: #fff;
+  background:#fff;
   color:var(--ink);
   padding:12px;
   outline:none;
   white-space: pre-wrap;
   line-height: 1.5;
 }
-
-/* Feinjustier-Wörter */
-.mod{ color: var(--mod); font-weight: 900; }
+.mod{ color:var(--mod); font-weight:900; }
 
 .textarea{
   width:100%;
@@ -140,7 +135,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   border:1px solid var(--line);
   border-radius:14px;
   padding:12px;
-  background: #fff;
+  background:#fff;
 }
 .group__title{
   font-weight:900;
@@ -172,11 +167,11 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   flex-wrap:wrap;
   justify-content:flex-end;
 }
-.overall__label{ color: var(--muted); font-size:.92rem; }
+.overall__label{ color:var(--muted); font-size:.92rem; }
 .overall__select{
   background:#fff;
   border:1px solid var(--line);
-  color: var(--ink);
+  color:var(--ink);
   padding:8px 10px;
   border-radius:10px;
   outline:none;
@@ -191,12 +186,11 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 @media (max-width: 900px){
   .levelGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
 .levelCol{
   border:1px solid var(--line);
   border-radius:14px;
   padding:10px;
-  background: #fff;
+  background:#fff;
 }
 .levelCap{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
 .levelCap__short{ font-weight:900; }
@@ -207,11 +201,10 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 .point input{ margin-top:3px; }
 .point span{ font-size:.92rem; line-height:1.25; }
 
-/* Farbhintergründe der 4 Stufen (nur UI) */
-.levelCol--blue   { background: var(--soft-blue); }
-.levelCol--green  { background: var(--soft-green); }
-.levelCol--orange { background: var(--soft-orange); }
-.levelCol--red    { background: var(--soft-red); }
+.levelCol--blue{ background:var(--soft-blue); }
+.levelCol--green{ background:var(--soft-green); }
+.levelCol--orange{ background:var(--soft-orange); }
+.levelCol--red{ background:var(--soft-red); }
 
 /* ===== PRINT/PDF ===== */
 .printArea{ width:210mm; }
@@ -249,7 +242,6 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   padding-bottom:1mm;
 }
 
-/* Tabelle: links Text, rechts 4 Spalten */
 .zeugnisTable{
   width:100%;
   display:grid;
@@ -267,7 +259,6 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   justify-items:center;
 }
 
-/* Header rechts: sehr gut → gut → genügend → nicht genügend */
 .zHeaderRight{
   display:grid;
   grid-template-columns: repeat(4, 1fr);
@@ -284,7 +275,6 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   line-height: 1;
 }
 
-/* Gefüllter Punkt statt Kreuz */
 .mark{
   width:5.2mm;
   height:5.2mm;
@@ -318,7 +308,6 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 
 .printLines .line{ height:8mm; border-bottom:1px solid #444; margin-bottom:3mm; }
 
-/* Unterschriften */
 .sigBox{ margin-top:3mm; border:1px solid #444; }
 .sigRow{ display:grid; }
 .sigRow--top{ grid-template-columns: 2fr 1fr; border-bottom:1px solid #444; }
@@ -338,5 +327,5 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   justify-content:space-between;
 }
 
-/* Print/PDF: markierte Wörter schwarz */
+/* PDF: markierte Wörter schwarz */
 #printArea .mod{ color:#111 !important; font-weight:400 !important; }
