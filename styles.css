@@ -110,7 +110,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   line-height: 1.45;
 }
 
-/* Markierte Feinjustier-Wörter */
+/* Feinjustier-Wörter */
 .mod{ color: var(--accent2); font-weight: 900; }
 
 .textarea{
@@ -124,7 +124,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   resize:vertical;
 }
 
-/* ===== Raster: detailliert ===== */
+/* ===== Raster ===== */
 .raster{ display:flex; flex-direction:column; gap:14px; }
 .group{
   border:1px solid var(--line);
@@ -153,7 +153,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   gap:12px;
   align-items:flex-start;
 }
-.detailTitle{ font-weight:900; max-width: 62ch; line-height:1.2; }
+.detailTitle{ font-weight:900; max-width: 66ch; line-height:1.2; }
 
 .overall{
   display:flex;
@@ -197,7 +197,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
 .point input{ margin-top:3px; }
 .point span{ font-size:.92rem; line-height:1.2; }
 
-/* Farbrahmen (UI) */
+/* UI-Farbrahmen */
 .levelCol--blue   { outline: 2px solid rgba(125,211,252,.30); }
 .levelCol--green  { outline: 2px solid rgba(68,209,157,.28); }
 .levelCol--orange { outline: 2px solid rgba(255,179,71,.28); }
@@ -257,7 +257,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   justify-items:center;
 }
 
-/* Header rechts – Reihenfolge: sehr gut → gut → genügend → nicht genügend */
+/* Header rechts: sehr gut → gut → genügend → nicht genügend */
 .zHeaderRight{
   display:grid;
   grid-template-columns: repeat(4, 1fr);
@@ -274,7 +274,7 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   line-height: 1;
 }
 
-/* Punkte statt X */
+/* Gefüllter Punkt statt X */
 .mark{
   width:5.2mm;
   height:5.2mm;
@@ -328,5 +328,9 @@ h2{ margin:0 0 10px 0; font-size:1.15rem; }
   justify-content:space-between;
 }
 
-/* PDF: Marker/Mod immer schwarz */
+/* Print/PDF: markierte Wörter schwarz */
 #printArea .mod{ color:#111 !important; font-weight:400 !important; }
+
+@media print{
+  body{ background:#fff !important; }
+}
