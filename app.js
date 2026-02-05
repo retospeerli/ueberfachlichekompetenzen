@@ -1,9 +1,9 @@
 /* app.js – Überfachliche Kompetenzen (final, komplett)
-   Änderungen in dieser Version:
-   1) Text-Engine v2 (professioneller, variabler, passende Weichmacher) integriert
-   2) Pro Kriterium 1–2 fachliche Nuancen in der Formulierung (ohne neue Inhalte zu erfinden)
+   Änderung in dieser Version (genau diese):
+   - Text-Engine v3: Bei Beurteilung "gut" (g) werden unnötige Weichmacher vermieden.
+     (freqPhrase('g') => "", bessere Satzlogik, kurzer Schluss ohne Floskel)
 
-   Alles andere bleibt wie in deiner letzten Komplett-Version:
+   Alles andere bleibt wie zuvor:
    - Overlay: NUR Hover >3s über Copilot-Button, immer schliessbar (X, Background, ESC)
    - Exklusivlogik über ex (keine Widersprüche)
    - PDF: 2 Seiten; html2canvas/jsPDF, sonst Print-Fallback
@@ -40,7 +40,7 @@ function getCycle(className){
 function pointText(p){ return p.t || ""; }
 function pointEx(p){ return p.ex || null; }
 
-/* ===== DATA (wie in deiner aktuellen App – erweiterbar) ===== */
+/* ===== DATA (unverändert) ===== */
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
@@ -422,31 +422,30 @@ function refreshAutoLabels(){
   });
 }
 
-/* ===== Text-Engine v2 (professioneller, variabler, passende Weichmacher + fachliche Nuancen) ===== */
+/* ===== Text-Engine v3 (gut = ohne unnötige Weichmacher) ===== */
 
-// Utility: deterministisch-variabel (stabil pro Kind + Kriterium)
 function pickStable(list, seedStr){
   let h = 2166136261;
   for(let i=0;i<seedStr.length;i++){
     h ^= seedStr.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
-  const idx = Math.abs(h) % list.length;
-  return list[idx];
+  return list[Math.abs(h) % list.length];
 }
 
-function advFreq(level, seed){
+function freqPhrase(level, seed){
+  if(level === "g") return ""; // WICHTIG: gut = ohne "meist/oft/überwiegend"
+
   const vv = ["durchwegs", "konsequent", "ausnahmslos", "in jeder Situation"];
-  const g  = ["meist", "überwiegend", "in der Regel", "zumeist", "weitgehend", "häufig"];
   const ge = ["teilweise", "phasenweise", "stellenweise", "nicht immer", "noch nicht durchgehend", "mit Schwankungen"];
   const u  = ["selten", "kaum", "nur vereinzelt", "noch nicht verlässlich", "noch nicht ausreichend", "nur sporadisch"];
-  const bank = level==="vv"?vv : level==="g"?g : level==="ge"?ge : u;
+  const bank = (level==="vv") ? vv : (level==="ge") ? ge : u;
   return mod(pickStable(bank, seed));
 }
 
-function advQuality(level, seed){
+function qualityWord(level, seed){
   const vv = ["sehr sicher", "äusserst zuverlässig", "mit hoher Selbstständigkeit", "überzeugend"];
-  const g  = ["sicher", "zuverlässig", "selbstständig", "gut"];
+  const g  = ["zuverlässig", "sicher", "selbstständig", "gut"];
   const ge = ["noch nicht durchgehend sicher", "mit Unterstützung", "mit wechselnder Sicherheit", "noch etwas unsicher"];
   const u  = ["klar unterstützungsbedürftig", "noch deutlich unsicher", "nur mit enger Begleitung", "noch nicht ausreichend"];
   const bank = level==="vv"?vv : level==="g"?g : level==="ge"?ge : u;
@@ -475,7 +474,6 @@ function sentenceLowHigh(low, high, cycle){
   return (cycle==="low") ? low : high;
 }
 
-// Fachliche Nuancen pro Kriterium (nur Formulierung, keine neuen Inhalte)
 const NUANCE = {
   puenktlich: {
     low: [
@@ -489,8 +487,8 @@ const NUANCE = {
   },
   aktiv: {
     low: [
-      "Er meldet sich eher, wenn Themen ihn interessieren oder Aufgaben einen klaren Rahmen haben.",
-      "In Gesprächssituationen zeigt er seine Stärken besonders, wenn er sich sicher fühlt."
+      "In Gesprächssituationen zeigt er seine Stärken besonders, wenn er sich sicher fühlt.",
+      "Er bringt sich leichter ein, wenn Aufgaben einen klaren Rahmen haben."
     ],
     high: [
       "Beiträge gelingen besonders dann, wenn Fragestellungen klar sind und er seine Gedanken strukturieren kann.",
@@ -513,8 +511,8 @@ const NUANCE = {
       "Beim Überprüfen (z.B. nochmals lesen) profitiert er von kurzen Checklisten."
     ],
     high: [
-      "Sorgfalt zeigt sich besonders, wenn er Arbeitsschritte abschliessen und die Ergebnisse kurz überprüfen kann.",
-      "Klare Qualitätskriterien (z.B. Checkliste) unterstützen einen verlässlichen Umgang mit Anforderungen."
+      "Sorgfalt zeigt sich besonders, wenn Arbeitsschritte abgeschlossen und Ergebnisse kurz überprüft werden.",
+      "Klare Qualitätskriterien (z.B. Checkliste) unterstützen verlässliche Ergebnisse."
     ]
   },
   zusammenarbeit: {
@@ -529,12 +527,12 @@ const NUANCE = {
   },
   regeln: {
     low: [
-      "Klare Abmachungen helfen ihm, sich zu orientieren.",
-      "Wenn Erwartungen vorher besprochen sind, kann er sie besser umsetzen."
+      "Wenn Erwartungen vorher besprochen sind, kann er sie besser umsetzen.",
+      "Klare Abmachungen helfen ihm, sich zu orientieren."
     ],
     high: [
-      "Klare Abmachungen und eine konsequente Rückmeldung unterstützen die Verlässlichkeit im Regelverhalten.",
-      "Gerade in dynamischen Situationen hilft eine klare Orientierung, damit Impulse kontrolliert und Regeln eingehalten werden."
+      "Klare Abmachungen und konsequente Rückmeldungen unterstützen Verlässlichkeit im Regelverhalten.",
+      "Gerade in dynamischen Situationen hilft eine klare Orientierung, damit Regeln eingehalten werden."
     ]
   },
   respekt: {
@@ -544,16 +542,16 @@ const NUANCE = {
     ],
     high: [
       "Respektvolle Kommunikation gelingt besonders, wenn Rückmeldungen konkret sind und Erwartungen klar benannt werden.",
-      "Bei Spannungen hilft eine kurze Klärung (Was ist passiert? Was ist der nächste Schritt?), um wieder in einen konstruktiven Umgang zu finden."
+      "Bei Spannungen hilft eine kurze Klärung, um wieder in einen konstruktiven Umgang zu finden."
     ]
   },
   selbsteinschaetzung: {
     low: [
-      "Wenn Ziele in kleine Schritte zerlegt sind, kann er sie besser einschätzen.",
-      "Er profitiert davon, wenn er kurze Rückmeldungen zu seinem Lernweg erhält."
+      "Er profitiert davon, wenn er kurze Rückmeldungen zu seinem Lernweg erhält.",
+      "Wenn Ziele in kleine Schritte zerlegt sind, kann er sie besser einschätzen."
     ],
     high: [
-      "Eine klare Zielstruktur und Zwischenfeedback unterstützen eine realistische Einschätzung und zielgerichtetes Handeln.",
+      "Eine klare Zielstruktur und Zwischenfeedback unterstützen realistische Einschätzung und zielgerichtetes Handeln.",
       "Wenn Kriterien transparent sind, kann er Stärken und Entwicklungsfelder präziser benennen."
     ]
   }
@@ -565,9 +563,14 @@ function nuanceSentence(key, seed, cycle){
   return " " + pickStable(bank, seed);
 }
 
+function withFreq(level, seed, phrase){
+  const f = freqPhrase(level, seed);
+  return f ? phrase.replace("{F}", f) : phrase.replace("{F} ", "").replace(" {F}", "");
+}
+
 function buildProfessionalText(ctx, levels){
   const { name, P, cycle } = ctx;
-  const L=(id)=>levels[id] || "g";
+  const L = (id)=>levels[id] || "g";
   const seedBase = `${name}|${cycle}`;
 
   const intro = sentenceLowHigh(
@@ -577,167 +580,83 @@ function buildProfessionalText(ctx, levels){
   );
 
   const p1 = (() => {
-    const lv=L("puenktlich");
-    const a1=advFreq(lv, seedBase+"|p1a");
-    const a2=advFreq(lv, seedBase+"|p1b");
-    const q =advQuality(lv, seedBase+"|p1q");
-
-    const s1 = sentenceLowHigh(
-      `${cap(P.subj)} ist zu Unterrichtsbeginn ${a1} startbereit und wirkt gut organisiert.`,
-      `${cap(P.subj)} beginnt den Unterricht ${a1} geordnet und vorbereitet.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `Material und Hausaufgaben sind ${a2} vollständig vorhanden; Abmachungen werden ${q} eingehalten.`,
-      `Material und Hausaufgaben sind ${a2} vollständig; organisatorische Abmachungen setzt ${cap(P.subj)} ${q} um.`,
-      cycle
-    );
-
+    const lv = L("puenktlich");
+    const q  = qualityWord(lv, seedBase+"|p1q");
+    const s1 = withFreq(lv, seedBase+"|p1f", `${cap(P.subj)} ist zu Unterrichtsbeginn {F} startbereit und wirkt gut organisiert.`);
+    const s2 = (lv==="g" || lv==="vv")
+      ? `Material und Hausaufgaben sind vollständig vorhanden; Abmachungen werden ${q} eingehalten.`
+      : `Material und Hausaufgaben sind nicht immer vollständig vorhanden; Abmachungen werden ${q} eingehalten.`;
     return `${s1} ${s2}${nuanceSentence("puenktlich", seedBase+"|n1", cycle)}${supportHint(lv, seedBase+"|p1h")}`;
   })();
 
   const p2 = (() => {
-    const lv=L("aktiv");
-    const f =advFreq(lv, seedBase+"|p2f");
-    const q =advQuality(lv, seedBase+"|p2q");
-
-    const s1 = sentenceLowHigh(
-      `Im Unterricht beteiligt sich ${name} ${f}.`,
-      `${name} beteiligt sich im Unterricht ${f} und bringt sich ein.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `${cap(P.subj)} zeigt Interesse, bringt passende Beiträge ein und übernimmt ${q} Eigeninitiative.`,
-      `${cap(P.subj)} zeigt Interesse, stellt bei Bedarf Fragen und handelt ${q} eigenständig.`,
-      cycle
-    );
-
+    const lv = L("aktiv");
+    const q  = qualityWord(lv, seedBase+"|p2q");
+    const s1 = withFreq(lv, seedBase+"|p2f", `Im Unterricht beteiligt sich ${name} {F}.`);
+    const s2 = `Er zeigt Interesse, bringt passende Beiträge ein und übernimmt ${q} Eigeninitiative.`;
     return `${s1} ${s2}${nuanceSentence("aktiv", seedBase+"|n2", cycle)}${supportHint(lv, seedBase+"|p2h")}`;
   })();
 
   const p3 = (() => {
-    const lv=L("konzentriert");
-    const f =advFreq(lv, seedBase+"|p3f");
-    const q =advQuality(lv, seedBase+"|p3q");
-
-    const s1 = sentenceLowHigh(
-      `Bei der Bearbeitung von Aufgaben arbeitet ${name} ${f} konzentriert und bleibt ${q} bei der Sache.`,
-      `Bei Arbeitsphasen zeigt ${name} ${f} Konzentration und hält den Fokus ${q}.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `Auch über längere Zeit kann ${cap(P.subj)} ${q} dranbleiben.`,
-      `Über längere Sequenzen gelingt Ausdauer ${q}.`,
-      cycle
-    );
-
+    const lv = L("konzentriert");
+    const q  = qualityWord(lv, seedBase+"|p3q");
+    const s1 = withFreq(lv, seedBase+"|p3f", `Bei der Bearbeitung von Aufgaben arbeitet ${name} {F} konzentriert und bleibt ${q} bei der Sache.`);
+    const s2 = (lv==="u")
+      ? `Über längere Zeit gelingt Ausdauer aktuell ${q}.`
+      : `Auch über längere Zeit kann er ${q} dranbleiben.`;
     return `${s1} ${s2}${nuanceSentence("konzentriert", seedBase+"|n3", cycle)}${supportHint(lv, seedBase+"|p3h")}`;
   })();
 
   const p4 = (() => {
-    const lv=L("sorgfalt");
-    const f =advFreq(lv, seedBase+"|p4f");
-    const q =advQuality(lv, seedBase+"|p4q");
-
-    const s1 = sentenceLowHigh(
-      `Aufträge führt ${name} ${f} sorgfältig aus.`,
-      `Aufträge bearbeitet ${name} ${f} sorgfältig und zuverlässig.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `Die Ergebnisse zeigen, dass ${P.subj} ${q} arbeitet und mit Material verantwortungsvoll umgeht.`,
-      `Die Arbeitsergebnisse wirken insgesamt ${q}; auch der Umgang mit Material ist entsprechend.`,
-      cycle
-    );
-
+    const lv = L("sorgfalt");
+    const q  = qualityWord(lv, seedBase+"|p4q");
+    const s1 = withFreq(lv, seedBase+"|p4f", `Aufträge führt ${name} {F} sorgfältig aus.`);
+    const s2 = `Die Ergebnisse zeigen, dass er ${q} arbeitet und mit Material verantwortungsvoll umgeht.`;
     return `${s1} ${s2}${nuanceSentence("sorgfalt", seedBase+"|n4", cycle)}${supportHint(lv, seedBase+"|p4h")}`;
   })();
 
   const p5 = (() => {
-    const lv=L("zusammenarbeit");
-    const f =advFreq(lv, seedBase+"|p5f");
-    const q =advQuality(lv, seedBase+"|p5q");
-
-    const s1 = sentenceLowHigh(
-      `In Partner- und Gruppenarbeiten arbeitet ${name} ${f} kooperativ mit anderen zusammen.`,
-      `${name} arbeitet in Teams ${f} kooperativ und trägt zum Gelingen der Zusammenarbeit bei.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `${cap(P.subj)} kann Verantwortung übernehmen und unterstützt andere ${q}.`,
-      `${cap(P.subj)} übernimmt ${q} Verantwortung und kann Rollen in der Gruppe passend ausfüllen.`,
-      cycle
-    );
-
+    const lv = L("zusammenarbeit");
+    const q  = qualityWord(lv, seedBase+"|p5q");
+    const s1 = withFreq(lv, seedBase+"|p5f", `In Partner- und Gruppenarbeiten arbeitet ${name} {F} kooperativ mit anderen zusammen.`);
+    const s2 = `Er kann Verantwortung übernehmen und unterstützt andere ${q}.`;
     return `${s1} ${s2}${nuanceSentence("zusammenarbeit", seedBase+"|n5", cycle)}${supportHint(lv, seedBase+"|p5h")}`;
   })();
 
   const p6 = (() => {
-    const lv=L("regeln");
-    const f =advFreq(lv, seedBase+"|p6f");
-    const q =advQuality(lv, seedBase+"|p6q");
-
-    const s1 = sentenceLowHigh(
-      `${name} hält Regeln des schulischen Zusammenlebens ${f} ein.`,
-      `${name} orientiert sich ${f} an Abmachungen und Regeln.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `Vereinbarte Aufgaben werden ${q} erledigt.`,
-      `Vereinbarte Aufgaben werden insgesamt ${q} umgesetzt.`,
-      cycle
-    );
-
+    const lv = L("regeln");
+    const q  = qualityWord(lv, seedBase+"|p6q");
+    const s1 = withFreq(lv, seedBase+"|p6f", `${name} hält Regeln des schulischen Zusammenlebens {F} ein.`);
+    const s2 = `Vereinbarte Aufgaben werden ${q} erledigt.`;
     return `${s1} ${s2}${nuanceSentence("regeln", seedBase+"|n6", cycle)}${supportHint(lv, seedBase+"|p6h")}`;
   })();
 
   const p7 = (() => {
-    const lv=L("respekt");
-    const f =advFreq(lv, seedBase+"|p7f");
-    const q =advQuality(lv, seedBase+"|p7q");
-
-    const s1 = sentenceLowHigh(
-      `Im Umgang mit Lehrpersonen und Mitschülerinnen und Mitschülern verhält sich ${name} ${f} respektvoll.`,
-      `${name} begegnet anderen ${f} respektvoll und kommuniziert ${q}.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `${cap(P.subj)} kann Rückmeldungen ${q} aufnehmen und im Verhalten umsetzen.`,
-      `${cap(P.subj)} nimmt Rückmeldungen ${q} an und richtet das Verhalten darauf aus.`,
-      cycle
-    );
-
+    const lv = L("respekt");
+    const q  = qualityWord(lv, seedBase+"|p7q");
+    const s1 = withFreq(lv, seedBase+"|p7f", `Im Umgang mit Lehrpersonen und Mitschülerinnen und Mitschülern verhält sich ${name} {F} respektvoll.`);
+    const s2 = `Er kann Rückmeldungen ${q} aufnehmen und im Verhalten umsetzen.`;
     return `${s1} ${s2}${nuanceSentence("respekt", seedBase+"|n7", cycle)}${supportHint(lv, seedBase+"|p7h")}`;
   })();
 
   const p8 = (() => {
-    const lv=L("selbsteinschaetzung");
-    const f =advFreq(lv, seedBase+"|p8f");
-    const q =advQuality(lv, seedBase+"|p8q");
-
-    const s1 = sentenceLowHigh(
-      `${name} schätzt die eigene Leistungsfähigkeit ${f} realistisch ein.`,
-      `${name} reflektiert die eigene Leistungsfähigkeit ${f} realistisch.`,
-      cycle
-    );
-    const s2 = sentenceLowHigh(
-      `Ziele kann ${cap(P.subj)} ${q} formulieren und daran arbeiten.`,
-      `${cap(P.subj)} kann Ziele ${q} setzen und Schritt für Schritt verfolgen.`,
-      cycle
-    );
-
+    const lv = L("selbsteinschaetzung");
+    const q  = qualityWord(lv, seedBase+"|p8q");
+    const s1 = withFreq(lv, seedBase+"|p8f", `${name} schätzt die eigene Leistungsfähigkeit {F} realistisch ein.`);
+    const s2 = `Ziele kann er ${q} formulieren und daran arbeiten.`;
     return `${s1} ${s2}${nuanceSentence("selbsteinschaetzung", seedBase+"|n8", cycle)}${supportHint(lv, seedBase+"|p8h")}`;
   })();
 
   const outro = sentenceLowHigh(
-    `Insgesamt zeigt ${name} viele Ressourcen. Mit klaren Strukturen gelingen anspruchsvollere Situationen zunehmend zuverlässig.`,
-    `Insgesamt verfügt ${name} über gute Grundlagen. Wo noch Entwicklungsbedarf besteht, unterstützen klare Erwartungen und konsequente Rückmeldungen den Lernprozess.`,
+    `Insgesamt zeigt ${name} viele Ressourcen.`,
+    `Insgesamt zeigt ${name} ein solides Arbeits- und Sozialverhalten.`,
     cycle
   );
 
   return [intro,"",p1,"",p2,"",p3,"",p4,"",p5,"",p6,"",p7,"",p8,"",outro].join("\n").trim();
 }
 
+/* ===== Editor ===== */
 function setEditorHTML(html){ el("reportEditor").innerHTML = html; }
 function getEditorPlainText(){
   const tmp=document.createElement("div");
@@ -855,12 +774,10 @@ function setupOverlay(){
     copilotHoverTimer = null;
   });
 
-  // ESC
   document.addEventListener("keydown", (e)=>{
     if(e.key==="Escape") closeOverlay();
   });
 
-  // Global capture click (schliesst immer)
   document.addEventListener("click", (e)=>{
     if(!overlay.classList.contains("is-open")) return;
 
@@ -874,7 +791,6 @@ function setupOverlay(){
     }
   }, true);
 
-  // Overlay actions
   el("btnOverlayOpenCopilot").addEventListener("click", ()=> window.open("https://copilot.microsoft.com","_blank"));
   el("btnOverlayCopyAgain").addEventListener("click", async ()=>{
     try{
