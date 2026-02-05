@@ -1,7 +1,7 @@
 /* app.js – Überfachliche Kompetenzen (final, komplett)
    Änderung in dieser Version (genau diese):
-   - Text-Engine v3: Bei Beurteilung "gut" (g) werden unnötige Weichmacher vermieden.
-     (freqPhrase('g') => "", bessere Satzlogik, kurzer Schluss ohne Floskel)
+   - Nuancen/Ergänzungssätze pro Bewertungsstufe (vv/g bestätigend, ge/u unterstützend)
+   - nuanceSentence(key, level, seed, cycle) + Anpassung der Aufrufe in buildProfessionalText()
 
    Alles andere bleibt wie zuvor:
    - Overlay: NUR Hover >3s über Copilot-Button, immer schliessbar (X, Background, ESC)
@@ -422,7 +422,7 @@ function refreshAutoLabels(){
   });
 }
 
-/* ===== Text-Engine v3 (gut = ohne unnötige Weichmacher) ===== */
+/* ===== Text-Engine v3 (gut = ohne unnötige Weichmacher) + Nuancen pro Stufe ===== */
 
 function pickStable(list, seedStr){
   let h = 2166136261;
@@ -434,7 +434,7 @@ function pickStable(list, seedStr){
 }
 
 function freqPhrase(level, seed){
-  if(level === "g") return ""; // WICHTIG: gut = ohne "meist/oft/überwiegend"
+  if(level === "g") return ""; // gut = keine Weichmacher
 
   const vv = ["durchwegs", "konsequent", "ausnahmslos", "in jeder Situation"];
   const ge = ["teilweise", "phasenweise", "stellenweise", "nicht immer", "noch nicht durchgehend", "mit Schwankungen"];
@@ -474,93 +474,165 @@ function sentenceLowHigh(low, high, cycle){
   return (cycle==="low") ? low : high;
 }
 
+// Nuancen v2: pro Bewertungsstufe passend
 const NUANCE = {
   puenktlich: {
-    low: [
-      "Der Einstieg gelingt ihm besonders dann, wenn Abläufe klar sind.",
-      "Kurze Rituale zu Beginn unterstützen einen ruhigen Start."
+    vv: [
+      "Er startet ruhig und geordnet in den Unterricht und behält seine Materialien zuverlässig im Griff.",
+      "Der Unterrichtsbeginn gelingt ihm konstant strukturiert; Material und Abmachungen sind verlässlich geregelt."
     ],
-    high: [
-      "Die Startphase gelingt umso besser, je klarer die Abläufe und Erwartungen sind.",
-      "Eine klare Organisation der Materialien wirkt sich positiv auf den Arbeitsbeginn aus."
+    g: [
+      "Er startet in der Regel geordnet; eine klare Startstruktur unterstützt diesen guten Einstieg zusätzlich.",
+      "Der Unterrichtsbeginn gelingt ihm stabil – feste Abläufe helfen, diese Qualität beizubehalten."
+    ],
+    ge: [
+      "Eine klare Startstruktur (z.B. kurzer Check von Material/HA) hilft, den Einstieg zuverlässiger zu gestalten.",
+      "Mit festen Routinen zu Beginn gelingt ein ruhiger Start zunehmend verlässlicher."
+    ],
+    u: [
+      "Für einen verlässlichen Unterrichtsbeginn braucht es klare Rituale, Kontrolle von Material/HA und konsequente Rückmeldung.",
+      "Ein verbindlicher Startablauf mit klaren Erwartungen ist nötig, damit Material und Abmachungen zuverlässig eingehalten werden."
     ]
   },
+
   aktiv: {
-    low: [
-      "In Gesprächssituationen zeigt er seine Stärken besonders, wenn er sich sicher fühlt.",
-      "Er bringt sich leichter ein, wenn Aufgaben einen klaren Rahmen haben."
+    vv: [
+      "Er bringt seine Gedanken sehr klar ein, stellt passende Fragen und bereichert Gespräche spürbar.",
+      "Er beteiligt sich konstant engagiert und übernimmt Verantwortung für sein Lernen mit hoher Eigeninitiative."
     ],
-    high: [
-      "Beiträge gelingen besonders dann, wenn Fragestellungen klar sind und er seine Gedanken strukturieren kann.",
-      "Bei offenen Aufgaben zeigt sich Eigeninitiative vor allem dann, wenn Ziele und Kriterien transparent sind."
+    g: [
+      "Er bringt sich aktiv ein und zeigt Interesse; offene Fragen klärt er zunehmend selbstständig.",
+      "Seine Beiträge sind passend und hilfreich – dieses aktive Mitdenken ist eine klare Stärke."
+    ],
+    ge: [
+      "Gezielte Impulse (z.B. Leitfragen) unterstützen, damit er sich häufiger einbringt und seine Ideen sichtbarer werden.",
+      "Mit klaren Gesprächsregeln und kurzen Denkpausen kann er seine Beiträge sicherer formulieren."
+    ],
+    u: [
+      "Damit er sich beteiligt, braucht es regelmässige Ansprache, klare Fragen und kurze, erreichbare Beteiligungsziele.",
+      "Eine verbindliche Beteiligungsstruktur (z.B. Meldezeichen, kurze Teilaufträge) ist nötig, damit er aktiv mitarbeitet."
     ]
   },
+
   konzentriert: {
-    low: [
-      "Kurze Etappen und sichtbare Zwischenziele helfen ihm, dranzubleiben.",
-      "In ruhiger Arbeitsatmosphäre kann er seine Ausdauer besser zeigen."
+    vv: [
+      "Er bleibt auch bei längeren Arbeitsphasen konzentriert und zeigt eine ausgeprägte Ausdauer.",
+      "Er arbeitet sehr fokussiert und kann seine Aufmerksamkeit konstant auf die Aufgabe richten."
     ],
-    high: [
-      "Eine klare Schrittfolge und Zeitstruktur unterstützt die Aufrechterhaltung des Fokus.",
-      "Zwischenziele und Rückmeldeschlaufen fördern Konstanz und Ausdauer."
+    g: [
+      "Er arbeitet konzentriert und hält den Fokus gut; klare Zwischenziele helfen, diese Stärke weiter auszubauen.",
+      "Er bleibt zuverlässig bei der Sache – mit einer passenden Zeiteinteilung gelingt ihm die Arbeit besonders rund."
+    ],
+    ge: [
+      "Kurze Etappen, sichtbare Zwischenziele und kurze Rückmeldeschlaufen helfen, den Fokus stabiler zu halten.",
+      "Eine ruhige Arbeitsatmosphäre und klare Schrittfolgen unterstützen seine Ausdauer spürbar."
+    ],
+    u: [
+      "Damit er konzentriert arbeiten kann, braucht es engere Führung, kurze Teilaufträge und häufige Rückmeldungen.",
+      "Klare Struktur (Schrittfolge, Zeitrahmen) und konsequentes Einfordern sind nötig, damit Aufgaben zuverlässig abgeschlossen werden."
     ]
   },
+
   sorgfalt: {
-    low: [
-      "Wenn er genügend Zeit hat, gelingen sorgfältige Ergebnisse deutlich besser.",
-      "Beim Überprüfen (z.B. nochmals lesen) profitiert er von kurzen Checklisten."
+    vv: [
+      "Er arbeitet sehr sorgfältig; seine Ergebnisse sind durchgehend sauber, vollständig und gut nachvollziehbar.",
+      "Er zeigt eine hohe Verlässlichkeit in der Ausführung und geht verantwortungsvoll mit Material um."
     ],
-    high: [
-      "Sorgfalt zeigt sich besonders, wenn Arbeitsschritte abgeschlossen und Ergebnisse kurz überprüft werden.",
-      "Klare Qualitätskriterien (z.B. Checkliste) unterstützen verlässliche Ergebnisse."
+    g: [
+      "Er arbeitet sorgfältig und liefert verlässliche Ergebnisse; kurze Selbstkontrollen helfen, die Qualität konstant hoch zu halten.",
+      "Seine Ergebnisse sind gut nachvollziehbar – das gezielte Überprüfen rundet seine Arbeit zusätzlich ab."
+    ],
+    ge: [
+      "Checklisten und kurze Selbstkontrollen unterstützen, damit seine Ergebnisse vollständiger und sorgfältiger werden.",
+      "Mit klaren Qualitätskriterien (z.B. nochmals lesen/prüfen) gelingt die Ausführung verlässlicher."
+    ],
+    u: [
+      "Damit sorgfältige Arbeit gelingt, braucht es klare Kriterien, häufige Kontrolle und verbindliche Rückmeldungen.",
+      "Eine enge Begleitung (Teilkontrollen, Checkliste) ist nötig, damit Ergebnisse vollständiger und zuverlässiger werden."
     ]
   },
+
   zusammenarbeit: {
-    low: [
-      "In Rollen mit klarer Aufgabe (z.B. Materialchef) findet er sich leichter zurecht.",
-      "Wenn Absprachen eindeutig sind, klappt die Kooperation spürbar besser."
+    vv: [
+      "Er arbeitet sehr kooperativ, übernimmt Verantwortung und trägt aktiv zu einem guten Gruppenklima bei.",
+      "Er unterstützt andere umsichtig und findet auch in wechselnden Gruppen schnell eine passende Rolle."
     ],
-    high: [
-      "In Gruppenarbeiten gelingt Kooperation besonders, wenn Rollen, Ziele und Absprachen geklärt sind.",
-      "Konflikte lassen sich besser vermeiden, wenn Kommunikation und Zuständigkeiten transparent sind."
+    g: [
+      "Er arbeitet kooperativ und übernimmt Verantwortung; klare Rollen fördern eine weiterhin reibungslose Zusammenarbeit.",
+      "Er trägt verlässlich zur Gruppenarbeit bei und kann Absprachen gut einhalten."
+    ],
+    ge: [
+      "Klare Rollen und Absprachen helfen, damit die Zusammenarbeit konstanter gelingt und Aufgaben besser verteilt werden.",
+      "Mit konkreten Zuständigkeiten und kurzen Absprachen kann er seine Rolle in der Gruppe sicherer erfüllen."
+    ],
+    u: [
+      "Für gelingende Zusammenarbeit braucht es klare Rollen, enge Begleitung und konsequentes Einfordern von Absprachen.",
+      "Ein verbindlicher Rahmen (Rolle, Auftrag, Gesprächsregeln) ist nötig, damit Gruppenarbeit nicht beeinträchtigt wird."
     ]
   },
+
   regeln: {
-    low: [
-      "Wenn Erwartungen vorher besprochen sind, kann er sie besser umsetzen.",
-      "Klare Abmachungen helfen ihm, sich zu orientieren."
+    vv: [
+      "Er hält Regeln konsequent ein und übernimmt Aufgaben zuverlässig – auch in dynamischen Situationen.",
+      "Er zeigt eine sehr gute Selbststeuerung und richtet sein Verhalten klar an Abmachungen aus."
     ],
-    high: [
-      "Klare Abmachungen und konsequente Rückmeldungen unterstützen Verlässlichkeit im Regelverhalten.",
-      "Gerade in dynamischen Situationen hilft eine klare Orientierung, damit Regeln eingehalten werden."
+    g: [
+      "Er hält Regeln ein und setzt Abmachungen zuverlässig um; klare Erwartungen unterstützen die Konstanz zusätzlich.",
+      "Er orientiert sich gut an Vereinbarungen und erledigt Aufgaben verlässlich."
+    ],
+    ge: [
+      "Klare Abmachungen und konsequente Rückmeldungen helfen, damit Regeln und Aufgaben verlässlicher eingehalten werden.",
+      "In unruhigen Situationen unterstützen klare Signale und kurze Erinnerungen die Umsetzung von Regeln."
+    ],
+    u: [
+      "Damit Regeln eingehalten werden, braucht es klare Abmachungen, engere Begleitung und konsequente Rückmeldung bei Regelverstössen.",
+      "Ein verbindlicher Rahmen mit klaren Konsequenzen ist nötig, damit Abmachungen und Aufgaben zuverlässig umgesetzt werden."
     ]
   },
+
   respekt: {
-    low: [
-      "Im Gespräch gelingt ein guter Umgang besonders, wenn er sich ernst genommen fühlt.",
-      "Bei Missverständnissen hilft es, kurz zu klären, was gemeint war."
+    vv: [
+      "Er begegnet anderen durchwegs respektvoll und kommuniziert auch bei Unterschieden sehr fair.",
+      "Er nimmt Rückmeldungen sehr gut an und setzt sie sichtbar in seinem Verhalten um."
     ],
-    high: [
-      "Respektvolle Kommunikation gelingt besonders, wenn Rückmeldungen konkret sind und Erwartungen klar benannt werden.",
-      "Bei Spannungen hilft eine kurze Klärung, um wieder in einen konstruktiven Umgang zu finden."
+    g: [
+      "Er begegnet anderen respektvoll und kann Rückmeldungen gut aufnehmen – das trägt zu einem positiven Miteinander bei.",
+      "Seine Kommunikation ist in der Regel fair; kleine Klärungen helfen, Missverständnisse rasch aufzulösen."
+    ],
+    ge: [
+      "Kurze Klärungen und klare Gesprächsregeln helfen, damit der respektvolle Umgang konstanter gelingt.",
+      "Gezielte Rückmeldungen unterstützen, damit er Rücksicht und respektvolle Kommunikation zuverlässiger zeigt."
+    ],
+    u: [
+      "Für einen respektvollen Umgang braucht es klare Gesprächsregeln, engere Begleitung und konsequente Rückmeldung bei Grenzüberschreitungen.",
+      "Ein verbindlicher Rahmen und direkte Klärung sind nötig, damit respektvolle Kommunikation verlässlich gelingt."
     ]
   },
+
   selbsteinschaetzung: {
-    low: [
-      "Er profitiert davon, wenn er kurze Rückmeldungen zu seinem Lernweg erhält.",
-      "Wenn Ziele in kleine Schritte zerlegt sind, kann er sie besser einschätzen."
+    vv: [
+      "Er reflektiert seine Leistungen sehr realistisch und kann Ziele klar setzen und konsequent verfolgen.",
+      "Er kennt seine Stärken und Entwicklungsfelder gut und nutzt Rückmeldungen sehr zielgerichtet."
     ],
-    high: [
-      "Eine klare Zielstruktur und Zwischenfeedback unterstützen realistische Einschätzung und zielgerichtetes Handeln.",
-      "Wenn Kriterien transparent sind, kann er Stärken und Entwicklungsfelder präziser benennen."
+    g: [
+      "Er schätzt seine Leistungen realistisch ein und kann Ziele gut formulieren; kurze Zwischenfeedbacks unterstützen die Zielarbeit zusätzlich.",
+      "Er kann eigene Fortschritte gut einschätzen und richtet seine nächsten Schritte zunehmend zielorientiert aus."
+    ],
+    ge: [
+      "Zwischenziele und kurze Rückmeldungen helfen, damit er seine Leistungen sicherer einschätzen und realistischere Ziele setzen kann.",
+      "Mit klaren Kriterien gelingt es ihm besser, Stärken und Entwicklungsfelder zu erkennen und passende Ziele zu formulieren."
+    ],
+    u: [
+      "Damit eine realistische Selbsteinschätzung gelingt, braucht es klare Kriterien, engere Begleitung und regelmässige Rückmeldungen.",
+      "Ein strukturierter Zielprozess (kleine Schritte, häufiges Feedback) ist nötig, damit Ziele realistisch und erreichbar werden."
     ]
   }
 };
 
-function nuanceSentence(key, seed, cycle){
-  const bank = (cycle==="low") ? (NUANCE[key]?.low || []) : (NUANCE[key]?.high || []);
+function nuanceSentence(key, level, seed, cycle){
+  const bank = NUANCE[key]?.[level] || [];
   if(!bank.length) return "";
-  return " " + pickStable(bank, seed);
+  return " " + pickStable(bank, seed + "|" + level + "|" + cycle);
 }
 
 function withFreq(level, seed, phrase){
@@ -586,7 +658,7 @@ function buildProfessionalText(ctx, levels){
     const s2 = (lv==="g" || lv==="vv")
       ? `Material und Hausaufgaben sind vollständig vorhanden; Abmachungen werden ${q} eingehalten.`
       : `Material und Hausaufgaben sind nicht immer vollständig vorhanden; Abmachungen werden ${q} eingehalten.`;
-    return `${s1} ${s2}${nuanceSentence("puenktlich", seedBase+"|n1", cycle)}${supportHint(lv, seedBase+"|p1h")}`;
+    return `${s1} ${s2}${nuanceSentence("puenktlich", lv, seedBase+"|n1", cycle)}${supportHint(lv, seedBase+"|p1h")}`;
   })();
 
   const p2 = (() => {
@@ -594,7 +666,7 @@ function buildProfessionalText(ctx, levels){
     const q  = qualityWord(lv, seedBase+"|p2q");
     const s1 = withFreq(lv, seedBase+"|p2f", `Im Unterricht beteiligt sich ${name} {F}.`);
     const s2 = `Er zeigt Interesse, bringt passende Beiträge ein und übernimmt ${q} Eigeninitiative.`;
-    return `${s1} ${s2}${nuanceSentence("aktiv", seedBase+"|n2", cycle)}${supportHint(lv, seedBase+"|p2h")}`;
+    return `${s1} ${s2}${nuanceSentence("aktiv", lv, seedBase+"|n2", cycle)}${supportHint(lv, seedBase+"|p2h")}`;
   })();
 
   const p3 = (() => {
@@ -604,7 +676,7 @@ function buildProfessionalText(ctx, levels){
     const s2 = (lv==="u")
       ? `Über längere Zeit gelingt Ausdauer aktuell ${q}.`
       : `Auch über längere Zeit kann er ${q} dranbleiben.`;
-    return `${s1} ${s2}${nuanceSentence("konzentriert", seedBase+"|n3", cycle)}${supportHint(lv, seedBase+"|p3h")}`;
+    return `${s1} ${s2}${nuanceSentence("konzentriert", lv, seedBase+"|n3", cycle)}${supportHint(lv, seedBase+"|p3h")}`;
   })();
 
   const p4 = (() => {
@@ -612,7 +684,7 @@ function buildProfessionalText(ctx, levels){
     const q  = qualityWord(lv, seedBase+"|p4q");
     const s1 = withFreq(lv, seedBase+"|p4f", `Aufträge führt ${name} {F} sorgfältig aus.`);
     const s2 = `Die Ergebnisse zeigen, dass er ${q} arbeitet und mit Material verantwortungsvoll umgeht.`;
-    return `${s1} ${s2}${nuanceSentence("sorgfalt", seedBase+"|n4", cycle)}${supportHint(lv, seedBase+"|p4h")}`;
+    return `${s1} ${s2}${nuanceSentence("sorgfalt", lv, seedBase+"|n4", cycle)}${supportHint(lv, seedBase+"|p4h")}`;
   })();
 
   const p5 = (() => {
@@ -620,7 +692,7 @@ function buildProfessionalText(ctx, levels){
     const q  = qualityWord(lv, seedBase+"|p5q");
     const s1 = withFreq(lv, seedBase+"|p5f", `In Partner- und Gruppenarbeiten arbeitet ${name} {F} kooperativ mit anderen zusammen.`);
     const s2 = `Er kann Verantwortung übernehmen und unterstützt andere ${q}.`;
-    return `${s1} ${s2}${nuanceSentence("zusammenarbeit", seedBase+"|n5", cycle)}${supportHint(lv, seedBase+"|p5h")}`;
+    return `${s1} ${s2}${nuanceSentence("zusammenarbeit", lv, seedBase+"|n5", cycle)}${supportHint(lv, seedBase+"|p5h")}`;
   })();
 
   const p6 = (() => {
@@ -628,7 +700,7 @@ function buildProfessionalText(ctx, levels){
     const q  = qualityWord(lv, seedBase+"|p6q");
     const s1 = withFreq(lv, seedBase+"|p6f", `${name} hält Regeln des schulischen Zusammenlebens {F} ein.`);
     const s2 = `Vereinbarte Aufgaben werden ${q} erledigt.`;
-    return `${s1} ${s2}${nuanceSentence("regeln", seedBase+"|n6", cycle)}${supportHint(lv, seedBase+"|p6h")}`;
+    return `${s1} ${s2}${nuanceSentence("regeln", lv, seedBase+"|n6", cycle)}${supportHint(lv, seedBase+"|p6h")}`;
   })();
 
   const p7 = (() => {
@@ -636,7 +708,7 @@ function buildProfessionalText(ctx, levels){
     const q  = qualityWord(lv, seedBase+"|p7q");
     const s1 = withFreq(lv, seedBase+"|p7f", `Im Umgang mit Lehrpersonen und Mitschülerinnen und Mitschülern verhält sich ${name} {F} respektvoll.`);
     const s2 = `Er kann Rückmeldungen ${q} aufnehmen und im Verhalten umsetzen.`;
-    return `${s1} ${s2}${nuanceSentence("respekt", seedBase+"|n7", cycle)}${supportHint(lv, seedBase+"|p7h")}`;
+    return `${s1} ${s2}${nuanceSentence("respekt", lv, seedBase+"|n7", cycle)}${supportHint(lv, seedBase+"|p7h")}`;
   })();
 
   const p8 = (() => {
@@ -644,7 +716,7 @@ function buildProfessionalText(ctx, levels){
     const q  = qualityWord(lv, seedBase+"|p8q");
     const s1 = withFreq(lv, seedBase+"|p8f", `${name} schätzt die eigene Leistungsfähigkeit {F} realistisch ein.`);
     const s2 = `Ziele kann er ${q} formulieren und daran arbeiten.`;
-    return `${s1} ${s2}${nuanceSentence("selbsteinschaetzung", seedBase+"|n8", cycle)}${supportHint(lv, seedBase+"|p8h")}`;
+    return `${s1} ${s2}${nuanceSentence("selbsteinschaetzung", lv, seedBase+"|n8", cycle)}${supportHint(lv, seedBase+"|p8h")}`;
   })();
 
   const outro = sentenceLowHigh(
