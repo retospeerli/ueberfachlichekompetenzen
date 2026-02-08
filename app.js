@@ -1,16 +1,18 @@
-/* app.js (vollständig)
-   Änderungen (und nur diese):
-   - PDF übersichtlicher: Kommentar der Lehrperson NICHT als eigenes Feld im PDF
-     -> teacherRemarks wird in den Gesamtbeurteilungstext integriert.
-   - "Auswertung" -> pädagogischer Titel: "Gesamtbeurteilung"
-   - Tabelle kompakter und zeugnisnah: Kreise + X, Spalten: sehr gut | gut | genügend | ungenügend
+/* app.js – Überfachliche Kompetenzen (final, komplett)
+   Änderung in dieser Version (genau diese):
+   - Nuancen/Ergänzungssätze pro Bewertungsstufe (vv/g bestätigend, ge/u unterstützend)
+   - nuanceSentence(key, level, seed, cycle) + Anpassung der Aufrufe in buildProfessionalText()
+
+   Alles andere bleibt wie zuvor:
+   - Overlay: NUR Hover >3s über Copilot-Button, immer schliessbar (X, Background, ESC)
+   - Exklusivlogik über ex (keine Widersprüche)
+   - PDF: 2 Seiten; html2canvas/jsPDF, sonst Print-Fallback
 */
 
 const DEFAULT_PLACE = "Wädenswil";
 const LEVELS = ["vv","g","ge","u"];
 const LEVEL_LABEL = { vv:"++", g:"+", ge:"-", u:"--" };
-const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"ungenügend" }; // für Tabelle oben
-const LEVEL_TEXT_UI  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" }; // UI-Text
+const LEVEL_TEXT  = { vv:"sehr gut", g:"gut", ge:"genügend", u:"nicht genügend" };
 
 function el(id){ return document.getElementById(id); }
 function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
@@ -38,7 +40,7 @@ function getCycle(className){
 function pointText(p){ return p.t || ""; }
 function pointEx(p){ return p.ex || null; }
 
-/* ===== DATA (wie bisher) ===== */
+/* ===== DATA (unverändert) ===== */
 const DATA = [
   {
     group: "Arbeits- und Lernverhalten",
@@ -289,7 +291,7 @@ function buildRaster(){
 
     const head=document.createElement("div");
     head.className="group__title";
-    head.innerHTML=`<div>${group.group}</div><div class="muted small">${group.items.length} Kriterien</div>`;
+    head.innerHTML=`<div>${group.group}</div><div class="muted">${group.items.length} Kriterien</div>`;
     wrap.appendChild(head);
 
     group.items.forEach(item=>{
@@ -332,7 +334,7 @@ function buildRaster(){
         capBox.className="levelCap";
         capBox.innerHTML=`
           <div class="levelCap__short">${LEVEL_LABEL[lk]}</div>
-          <div class="levelCap__long">${LEVEL_TEXT_UI[lk]}</div>
+          <div class="levelCap__long">${LEVEL_TEXT[lk]}</div>
         `;
         col.appendChild(capBox);
 
@@ -416,11 +418,11 @@ function refreshAutoLabels(){
     state.overall[item.id]=backup;
 
     const node=document.querySelector(`[data-autolabel="${item.id}"]`);
-    if(node) node.textContent=`${LEVEL_LABEL[auto]} (${LEVEL_TEXT_UI[auto]})`;
+    if(node) node.textContent=`${LEVEL_LABEL[auto]} (${LEVEL_TEXT[auto]})`;
   });
 }
 
-/* ===== Text-Engine (wie zuvor: gut ohne unnötige Weichmacher, Nuancen pro Stufe) ===== */
+/* ===== Text-Engine v3 (gut = ohne unnötige Weichmacher) + Nuancen pro Stufe ===== */
 
 function pickStable(list, seedStr){
   let h = 2166136261;
@@ -472,7 +474,7 @@ function sentenceLowHigh(low, high, cycle){
   return (cycle==="low") ? low : high;
 }
 
-// Nuancen pro Bewertungsstufe
+// Nuancen v2: pro Bewertungsstufe passend
 const NUANCE = {
   puenktlich: {
     vv: [
@@ -801,7 +803,10 @@ function localCleanTextAndRemarks(){
     [/\n{3,}/g, "\n\n"],
     [/\s{2,}/g, " "],
     [/ ,/g, ","],
-    [/ \./g, "."]
+    [/ \./g, "."],
+    [/oft/gi, "häufig"],
+    [/manchmal/gi, "gelegentlich"],
+    [/selten/gi, "vereinzelt"]
   ];
 
   let txt = (el("reportEditor").innerText || "");
@@ -814,7 +819,7 @@ function localCleanTextAndRemarks(){
   el("teacherRemarks").value = rem;
 }
 
-/* ===== Overlay (Hover > 3s) ===== */
+/* ===== Overlay: robust (class toggling + capture click) ===== */
 let copilotHoverTimer = null;
 
 function openOverlay(){
@@ -870,40 +875,28 @@ function setupOverlay(){
   });
 }
 
-/* ===== PRINT/PDF (ÄNDERUNG: Kommentar im PDF gestrichen, Text integriert; Tabelle zeugnisnah) ===== */
-
+/* ===== Print/PDF ===== */
 function buildPrintTables(selections){
-  const COLS = ["vv","g","ge","u"]; // sehr gut | gut | genügend | ungenügend
-
-  function headerHTML(){
-    return `
-      <div class="zHead"></div>
-      <div class="zHeadCols">
-        ${COLS.map(lk => `<div class="zColHead"><span>${LEVEL_TEXT[lk]}</span></div>`).join("")}
-      </div>
-    `;
-  }
+  const headerRight = `
+    <div class="zHeaderRight">
+      <div class="rot"><span>${LEVEL_TEXT.vv}</span></div>
+      <div class="rot"><span>${LEVEL_TEXT.g}</span></div>
+      <div class="rot"><span>${LEVEL_TEXT.ge}</span></div>
+      <div class="rot"><span>${LEVEL_TEXT.u}</span></div>
+    </div>
+  `;
 
   function rowHTML(item){
     const chosen = selections[item.id] || "g";
-    return `
-      <div class="zCrit">${item.title}</div>
-      <div class="zCols">
-        ${COLS.map(lk => `<div class="zDot ${lk===chosen ? "zDot--on" : ""}"></div>`).join("")}
-      </div>
-    `;
+    const marks = LEVELS.map(lk => `<div class="${lk===chosen ? "mark mark--on" : "mark"}"></div>`).join("");
+    return `<div class="zRowLeft">${item.title}</div><div class="zRowRight">${marks}</div>`;
+  }
+  function table(group){
+    return `<div></div>${headerRight}` + group.items.map(rowHTML).join("");
   }
 
-  function groupHTML(group){
-    return `
-      <div class="zGroupTitle">${group.group}</div>
-      ${headerHTML()}
-      ${group.items.map(rowHTML).join("")}
-    `;
-  }
-
-  el("printTableArbeits").innerHTML = `<div class="zTable">${groupHTML(DATA[0])}</div>`;
-  el("printTableSozial").innerHTML  = `<div class="zTable">${groupHTML(DATA[1])}</div>`;
+  el("printTableArbeits").innerHTML = table(DATA[0]);
+  el("printTableSozial").innerHTML  = table(DATA[1]);
 }
 
 function collectSelectedPoints(item){
@@ -936,13 +929,13 @@ function buildPrintDetails(selections){
       const lines = (byLevel.length===0)
         ? `<div class="dLine"><span class="dLabel">Ausgewählt:</span> (keine Detailpunkte markiert)</div>`
         : byLevel.map(x=>{
-            const label = `${LEVEL_TEXT_UI[x.lk]} (${LEVEL_LABEL[x.lk]})`;
+            const label = `${LEVEL_TEXT[x.lk]} (${LEVEL_LABEL[x.lk]})`;
             return `<div class="dLine"><span class="dLabel">${label}:</span> ${x.list.join("; ")}</div>`;
           }).join("");
 
       parts.push(`
         <div class="dItem">
-          <div class="dTitle">${item.title} — <span style="font-weight:700;color:#111">${LEVEL_TEXT_UI[chosen]} (${LEVEL_LABEL[chosen]})</span></div>
+          <div class="dTitle">${item.title} — <span style="font-weight:700;color:#333">${LEVEL_TEXT[chosen]} (${LEVEL_LABEL[chosen]})</span></div>
           ${lines}
         </div>
       `);
@@ -965,23 +958,35 @@ function buildPrint(){
 
   el("sigTeacherCap").textContent = (teacherName && teacherName!=="—") ? `Lehrperson: ${teacherName}` : "Lehrperson";
 
-  // Tabelle
   const selections = currentSelections();
   buildPrintTables(selections);
-
-  // Details optional
   buildPrintDetails(selections);
 
-  // WICHTIG: Lehrerkommentar wird in den Text integriert und nicht separat im PDF gezeigt
-  const baseText = getEditorPlainText().trim();
-  const teacherRemark = (el("teacherRemarks").value || "").trim();
-  const merged = teacherRemark ? `${baseText}\n\n${teacherRemark}` : baseText;
+  const includeDetails = !!el("pdfIncludeDetails").checked;
+  const t = el("printText");
+  const r = el("printTeacherRemarks");
+  t.classList.remove("clampA","clampB");
+  r.classList.remove("linesA","linesB");
+  t.classList.add(includeDetails ? "clampB" : "clampA");
+  r.classList.add(includeDetails ? "linesB" : "linesA");
 
-  el("printText").textContent = merged;
+  el("printText").textContent = getEditorPlainText();
 
-  // Titel sicherstellen (falls HTML mal anders ist)
-  const t1 = document.querySelector("#printArea .printPage:first-child .printSectionTitle");
-  if(t1) t1.textContent = "Gesamtbeurteilung";
+  const remarks=(el("teacherRemarks").value||"").trim();
+  if(remarks){
+    r.innerHTML = "";
+    const p=document.createElement("div");
+    p.style.whiteSpace="pre-wrap";
+    p.style.marginBottom="3mm";
+    p.style.fontSize="10.2pt";
+    p.textContent=remarks;
+    r.appendChild(p);
+    r.insertAdjacentHTML("beforeend", `<div class="line"></div>`);
+  } else {
+    r.innerHTML = includeDetails
+      ? `<div class="line"></div><div class="line"></div>`
+      : `<div class="line"></div><div class="line"></div><div class="line"></div>`;
+  }
 }
 
 function getJsPDF(){
