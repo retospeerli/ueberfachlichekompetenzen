@@ -1,204 +1,237 @@
-<!-- index.html (vollständig) -->
 <!doctype html>
-<html lang="de">
+<html lang="de-CH">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Überfachliche Kompetenzen</title>
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- lokal (zu Hause laden, dann ins Repo /vendor hochladen) -->
+  <script defer src="vendor/html2canvas.min.js"></script>
+  <script defer src="vendor/jspdf.umd.min.js"></script>
 </head>
+
 <body>
   <header class="topbar">
     <div class="topbar__inner">
-      <div>
-        <h1>Überfachliche Kompetenzen</h1>
-        <div class="subline">
-          Digitales Beurteilungsraster · ohne Datenspeicherung · PDF-Export
-        </div>
+      <div class="brand">
+        <div class="brand__title">Überfachliche Kompetenzen</div>
+        <div class="brand__subtitle">Raster → Text → PDF</div>
       </div>
-      <div class="topbar__actions">
-        <button class="btn btn--ghost" id="btnCopy" type="button">Text kopieren</button>
-        <button class="btn btn--ghost" id="btnReset" type="button">Zurücksetzen</button>
+
+      <div class="actions">
+        <button id="btnReset" class="btn btn--ghost" type="button">Standard</button>
+        <button id="btnRegen" class="btn" type="button">Text neu erzeugen</button>
+
+        <div class="pdfGroup">
+          <label class="check">
+            <input id="pdfIncludeDetails" type="checkbox" />
+            <span>PDF: Details (Bewertungskriterien)</span>
+          </label>
+          <button id="btnPdf" class="btn btn--primary" type="button">PDF erstellen</button>
+        </div>
       </div>
     </div>
   </header>
 
-  <main class="layout">
+  <main class="container">
+
     <section class="card">
-      <h2 class="card__title">Formularkopf</h2>
-
+      <h2>Formularkopf</h2>
       <div class="grid grid--4">
-        <div class="field">
-          <label for="studentName">Name</label>
-          <input id="studentName" type="text" placeholder="Vorname Nachname" />
-        </div>
+        <label class="field">
+          <span>Name Kind</span>
+          <input id="studentName" type="text" autocomplete="off" placeholder="Vorname Nachname" />
+        </label>
 
-        <div class="field">
-          <label for="className">Klasse</label>
-          <input id="className" type="text" placeholder="z.B. 4a" />
-        </div>
+        <label class="field">
+          <span>Klasse</span>
+          <input id="className" type="text" autocomplete="off" placeholder="z. B. 3a / 6b" />
+        </label>
 
-        <div class="field">
-          <label for="gender">Geschlecht</label>
+        <label class="field">
+          <span>Geschlecht</span>
           <select id="gender">
             <option value="m">m</option>
             <option value="w">w</option>
           </select>
-        </div>
+        </label>
 
-        <div class="field">
-          <label for="teacherName">Lehrperson</label>
-          <input id="teacherName" type="text" placeholder="Name der Lehrperson" />
-        </div>
-      </div>
+        <label class="field">
+          <span>Name Lehrperson</span>
+          <input id="teacherName" type="text" autocomplete="off" placeholder="Vorname Nachname" />
+        </label>
 
-      <div class="grid grid--3">
-        <div class="field">
-          <label for="place">Ort</label>
-          <input id="place" type="text" />
-        </div>
+        <label class="field">
+          <span>Ort</span>
+          <input id="place" type="text" autocomplete="off" />
+        </label>
 
-        <div class="field">
-          <label for="date">Datum</label>
+        <label class="field">
+          <span>Datum</span>
           <input id="date" type="date" />
-        </div>
-
-        <div class="field field--inline">
-          <label class="check">
-            <input id="pdfIncludeDetails" type="checkbox" />
-            <span>Bewertungskriterien im PDF ausgeben (inkl. Markierungen)</span>
-          </label>
-        </div>
+        </label>
       </div>
+
+      <p class="hint">
+        Farbig markierte Wörter im Text sind „Feinjustier-Wörter“. In der PDF ist alles schwarz.
+      </p>
     </section>
 
     <section class="card">
-      <h2 class="card__title">Raster</h2>
-      <div id="rasterRoot"></div>
+      <h2>Beurteilungsraster</h2>
+      <p class="muted">
+        Kreuze Beobachtungen an. Die <strong>Gesamtstufe</strong> wird automatisch berechnet und kann manuell überschrieben werden.
+        Widersprüchliche Aussagen innerhalb eines Kriteriums werden automatisch verhindert.
+      </p>
+      <div id="rasterRoot" class="raster"></div>
     </section>
 
     <section class="card">
-      <div class="card__titleRow">
-        <h2 class="card__title">Text (editierbar)</h2>
-        <div class="row">
-          <button class="btn btn--ghost" id="btnRegen" type="button">Text neu erzeugen</button>
-          <button class="btn btn--ghost" id="btnDictateText" type="button">🎤 Diktat</button>
+      <div class="row row--between row--center">
+        <h2>Auswertungstext</h2>
+        <div class="row row--gap">
+          <button id="btnDictateText" class="btn btn--ghost" type="button">🎤 Diktat</button>
+          <button id="btnCopy" class="btn btn--ghost" type="button">Kopieren</button>
         </div>
       </div>
 
-      <div class="hint">
-        Wörter in <span class="mod">Farbe</span> sind bewusst „Stellschrauben“ (z.B. Frequenz/Qualität) und lassen sich schnell anpassen.
+      <div class="row row--gap mt">
+        <button id="btnAiCopy" class="btn btn--ghost" type="button">🧠 Prompt + Text kopieren</button>
+        <button id="btnAiOpen" class="btn btn--ghost" type="button">🚀 In Copilot bearbeiten</button>
+        <button id="btnAiClean" class="btn btn--ghost" type="button">🧹 Nur Text glätten</button>
+      </div>
+
+      <div class="muted small mt">
+        Der Text ist direkt editierbar (Browser-Rechtschreibung aktiv). Sobald du manuell editierst,
+        wird der Text nicht mehr automatisch überschrieben.
       </div>
 
       <div id="reportEditor" class="editor" contenteditable="true" spellcheck="true"></div>
 
-      <div class="split">
-        <div>
-          <div class="row row--between">
-            <h3 class="subhead">Zusätzliche Bemerkungen (nur für Text / Copilot, nicht separat im PDF)</h3>
-            <button class="btn btn--ghost" id="btnDictateRemarks" type="button">🎤 Diktat</button>
-          </div>
-          <textarea id="teacherRemarks" class="textarea" rows="4" placeholder="Optional: zusätzliche Bemerkungen der Lehrperson (werden in den Text integriert)"></textarea>
-        </div>
-
-        <div class="actions">
-          <h3 class="subhead">Copilot</h3>
-          <button class="btn btn--ghost" id="btnAiCopy" type="button">Text + Prompt kopieren</button>
-          <button class="btn btn--ghost" id="btnAiClean" type="button">Nur Text glätten</button>
-          <button class="btn btn--primary" id="btnAiOpen" type="button">In Copilot bearbeiten</button>
-
-          <div class="mini">
-            Hinweis: Die Anleitung öffnet sich automatisch, wenn du 3 Sekunden über dem Copilot-Button verweilst.
-          </div>
-        </div>
+      <div class="row row--between row--center mt">
+        <h3 class="h3">Bemerkungen Lehrperson (optional)</h3>
+        <button id="btnDictateRemarks" class="btn btn--ghost" type="button">🎤 Diktat</button>
       </div>
 
-      <div class="footerActions">
-        <button class="btn btn--primary" id="btnPdf" type="button">PDF erstellen</button>
-      </div>
+      <textarea id="teacherRemarks" class="textarea" rows="4" spellcheck="true"
+        placeholder="Bemerkungen der Lehrperson (optional)."></textarea>
     </section>
-  </main>
 
-  <!-- Overlay Anleitung (Hover > 3s auf Copilot-Button) -->
-  <div id="aiOverlay" class="overlay" aria-hidden="true">
-    <div class="overlay__backdrop"></div>
-    <div class="overlay__panel" role="dialog" aria-modal="true" aria-label="Copilot Anleitung">
-      <div class="overlay__head">
-        <div class="overlay__title">Copilot: Text verbessern & zurückkopieren</div>
-        <button class="overlay__close" type="button" data-close="copilot">×</button>
-      </div>
+    <!-- Overlay: Copilot Anleitung -->
+    <div id="aiOverlay" class="overlay" hidden>
+      <div class="overlay__card" role="dialog" aria-modal="true" aria-labelledby="aiOverlayTitle">
+        <div class="overlay__top">
+          <div id="aiOverlayTitle" class="overlay__title">Copilot-Workflow</div>
+          <button id="btnOverlayClose" class="btn btn--ghost" type="button">✕</button>
+        </div>
 
-      <ol class="overlay__steps">
-        <li><strong>„Text + Prompt kopieren“</strong> drücken (oder wurde beim Öffnen schon kopiert).</li>
-        <li><strong>Copilot öffnen</strong> und den Prompt einfügen (Ctrl+V).</li>
-        <li>Copilot gibt zwei Blöcke aus: <strong>AUSWERTUNG</strong> und <strong>KOMMENTAR</strong>.</li>
-        <li>Beides wieder hier in den Editor kopieren (du kannst KOMMENTAR am Ende belassen).</li>
-        <li>Dann <strong>PDF erstellen</strong>.</li>
-      </ol>
+        <ol class="overlay__steps">
+          <li><strong>Prompt + Text</strong> wurden kopiert. Wechsle zu <strong>Copilot</strong>.</li>
+          <li>Füge alles mit <strong>Ctrl+V</strong> ein und sende ab.</li>
+          <li>Copilot soll <strong>zwei Blöcke</strong> liefern: <code>AUSWERTUNG:</code> und <code>KOMMENTAR:</code>.</li>
+          <li>Kopiere den <strong>AUSWERTUNG</strong>-Block zurück und ersetze damit den Text im Editor (<strong>Ctrl+A</strong>, dann einfügen).</li>
+          <li>Kopiere den <strong>KOMMENTAR</strong>-Block zurück und setze ihn in „Bemerkungen Lehrperson“.</li>
+          <li>Dann: <strong>PDF erstellen</strong>.</li>
+        </ol>
 
-      <div class="overlay__actions">
-        <button class="btn btn--ghost" id="btnOverlayCopyAgain" type="button">Prompt + Text nochmals kopieren</button>
-        <button class="btn btn--primary" id="btnOverlayOpenCopilot" type="button">Copilot öffnen</button>
+        <div class="overlay__actions">
+          <button id="btnOverlayCopyAgain" class="btn" type="button">Prompt + Text nochmals kopieren</button>
+          <button id="btnOverlayOpenCopilot" class="btn btn--primary" type="button">Copilot öffnen</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- PRINT AREA (offscreen) -->
-  <div id="printArea" class="printArea printArea--offscreen" aria-hidden="true">
-    <!-- Seite 1 -->
-    <section class="printPage">
-      <div class="printHeader">
-        <div class="printTitle">Überfachliche Kompetenzen</div>
-        <div id="printHead" class="printMeta"></div>
+    <!-- PRINT/PDF (immer 2 Seiten) -->
+    <section id="printArea" class="printArea printArea--offscreen" aria-hidden="true">
+      <!-- Seite 1 -->
+      <div class="printPage" data-page="1">
+        <div class="printHeader">
+          <div class="printTitle">Überfachliche Kompetenzen</div>
+          <div id="printHead" class="printMeta"></div>
+        </div>
+
+        <div class="zeugnisTitle">Primarschule: Einschätzung zum Lern-, Arbeits- und Sozialverhalten</div>
+
+        <div class="zeugnisSection">
+          <div class="zeugnisSectionHead">Lern und Arbeitsverhalten</div>
+          <div id="printTableArbeits" class="zeugnisTable"></div>
+        </div>
+
+        <div class="zeugnisSection">
+          <div class="zeugnisSectionHead">Sozialverhalten</div>
+          <div id="printTableSozial" class="zeugnisTable"></div>
+        </div>
+
+        <div id="printDetailsWrap" class="zeugnisSection" hidden>
+          <div class="zeugnisSectionHead">Bewertungskriterien (Details)</div>
+          <div id="printDetails" class="detailTable"></div>
+        </div>
+
+        <div class="printBlock">
+          <div class="printLabel">Auswertung (Text)</div>
+          <div id="printText" class="printText"></div>
+        </div>
+
+        <div class="printBlock">
+          <div class="printLabel">Bemerkungen Lehrperson</div>
+          <div id="printTeacherRemarks" class="printLines"></div>
+        </div>
+
+        <div class="printFooter">
+          <div>PS Wädenswil, Schule Untermosen</div>
+        </div>
       </div>
 
-      <div class="printBlockTitle">Primarschule: Einschätzung zum Lern-, Arbeits- und Sozialverhalten</div>
+      <!-- Seite 2 -->
+      <div class="printPage" data-page="2">
+        <div class="printHeader">
+          <div class="printTitle">Überfachliche Kompetenzen</div>
+          <div id="printHead2" class="printMeta"></div>
+        </div>
 
-      <div class="printTables">
-        <div id="printTableArbeits"></div>
-        <div id="printTableSozial"></div>
-      </div>
+        <div class="printBlock">
+          <div class="printLabel">Bemerkungen Eltern</div>
+          <div class="printLines">
+            <div class="line"></div><div class="line"></div><div class="line"></div>
+            <div class="line"></div><div class="line"></div>
+          </div>
+        </div>
 
-      <div class="printSectionTitle">Gesamtbeurteilung</div>
-      <div id="printText" class="printText"></div>
+        <div class="printBlock">
+          <div class="printLabelBox">Unterschriften</div>
+          <div class="sigBox">
+            <div class="sigRow sigRow--top">
+              <div><strong>Datum:</strong></div>
+              <div><strong>Datum:</strong></div>
+            </div>
 
-      <!-- optional: Details (Kriterienliste) -->
-      <div id="printDetailsWrap" class="printDetailsWrap" hidden>
-        <div class="printDetailsTitle">Bewertungskriterien (Details)</div>
-        <div id="printDetails" class="printDetails"></div>
+            <div class="sigRow sigRow--grid">
+              <div class="sigCell">
+                <div class="sigCap">Kind</div>
+                <div class="sigLine"></div>
+              </div>
+
+              <div class="sigCell">
+                <div id="sigTeacherCap" class="sigCap">Lehrperson</div>
+                <div class="sigLine"></div>
+              </div>
+
+              <div class="sigCell">
+                <div class="sigCap">Visum Eltern</div>
+                <div class="sigLine"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="printFooter">
+          <div>PS Wädenswil, Schule Untermosen</div>
+        </div>
       </div>
     </section>
 
-    <!-- Seite 2 -->
-    <section class="printPage">
-      <div class="printHeader">
-        <div class="printTitle">Überfachliche Kompetenzen</div>
-        <div id="printHead2" class="printMeta"></div>
-      </div>
-
-      <div class="printSectionTitle">Bemerkungen der Eltern</div>
-      <div class="parentBox">
-        <div class="parentLines"></div>
-      </div>
-
-      <div class="signatures">
-        <div class="sigRow">
-          <div class="sigLabel" id="sigTeacherCap">Lehrperson</div>
-          <div class="sigLine"></div>
-          <div class="sigHint">Unterschrift</div>
-        </div>
-        <div class="sigRow">
-          <div class="sigLabel">Visum Eltern</div>
-          <div class="sigLine"></div>
-          <div class="sigHint">Datum / Unterschrift</div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- Vendor (lokal einbinden) -->
-  <script src="vendor/html2canvas.min.js"></script>
-  <script src="vendor/jspdf.umd.min.js"></script>
+  </main>
 
   <script src="app.js"></script>
 </body>
